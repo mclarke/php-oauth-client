@@ -23,8 +23,14 @@ class Callback
         $this->_storage = new PdoStorage($c);
     }
 
-    public function handleRequest($callbackId, HttpRequest $r)
+    //public function handleRequest($callbackId, HttpRequest $r)
+    public function handleRequest(HttpRequest $r)
     {
+        $callbackId = $r->getQueryParameter("id");
+        if(NULL === $callbackId) {
+            throw new CallbackException("no callback id specified");
+        }
+        
         // FIXME: better validation of config file reading...
         $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
         $configuredClientsJson = file_get_contents($configuredClientsFile);
@@ -41,6 +47,9 @@ class Callback
             throw new CallbackException("invalid state (missing)");
         }
         $state = $this->_storage->getState($callbackId, $qState);
+        if(FALSE === $state) {
+            throw new CallbackException("invalid state (not found)");
+        }
 
         try {
             if (FALSE === $this->_storage->deleteState($callbackId, $qState)) {

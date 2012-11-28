@@ -55,7 +55,7 @@ class Api
         $configuredClientsJson = file_get_contents($configuredClientsFile);
         $clients = json_decode($configuredClientsJson, TRUE);
         if (!is_array($clients) || !array_key_exists($this->_callbackId, $clients)) {
-            throw new CallbackException("invalid callback id");
+            throw new ApiException("invalid callback id");
         }
 
         // check if access token is actually available for this user, if

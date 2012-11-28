@@ -12,6 +12,7 @@ use \RestService\Http\HttpResponse as HttpResponse;
 use \RestService\Http\IncomingHttpRequest as IncomingHttpRequest;
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;
+use \RestService\Http\RestException as RestException;
 
 use \OAuth\Client\Callback as Callback;
 use \OAuth\Client\CallbackException as CallbackException;
@@ -27,29 +28,28 @@ try {
     $service = new Callback($config, $logger);
 
     $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
-    $request->matchRest("GET", "/:callbackId", function($callbackId) use ($request, &$response, $service) {
-        $response = $service->handleRequest($callbackId, $request);
-    });
-    $request->matchRestDefault(function($methodMatch, $patternMatch) use ($request) {
-        if (in_array($request->getRequestMethod(), $methodMatch)) {
-            if (!$patternMatch) {
-                throw new FooException("not_found", "resource not found");
-            }
-        } else {
-            throw new FooException("method_not_allowed", "request method not allowed");
-        }
-    });
-
+    $response = $service->handleRequest($request);
 } catch (CallbackException $e) {
     $response = new HttpResponse(400);
-    $response->setContent($e->getMessage());
+    ob_start();
+    require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
+    $response->setContent(ob_get_clean());
     if (NULL !== $logger) {
         $logger->logWarn($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
     }
+} catch (RestException $e) {
+    $response = new HttpResponse($e->getResponseCode());
+    ob_start();
+    require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
+    $response->setContent(ob_get_clean());
+    if (NULL !== $logger) {
+        $logger->logWarn($e->getLogMessage() . PHP_EOL . $request . PHP_EOL . $response);
+    }
 } catch (Exception $e) {
     $response = new HttpResponse(500);
-    $response->setHeader("Content-Type", "application/json");
-    $response->setContent(json_encode(array("error" => "internal_server_error", "error_description" => $e->getMessage())));
+    ob_start();
+    require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
+    $response->setContent(ob_get_clean());
     if (NULL !== $logger) {
         $logger->logFatal($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
     }
