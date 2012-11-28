@@ -12,7 +12,6 @@ use \RestService\Http\HttpResponse as HttpResponse;
 use \RestService\Http\IncomingHttpRequest as IncomingHttpRequest;
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;
-use \RestService\Http\RestException as RestException;
 
 use \OAuth\Client\Callback as Callback;
 use \OAuth\Client\CallbackException as CallbackException;
@@ -36,14 +35,6 @@ try {
     $response->setContent(ob_get_clean());
     if (NULL !== $logger) {
         $logger->logWarn($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
-    }
-} catch (RestException $e) {
-    $response = new HttpResponse($e->getResponseCode());
-    ob_start();
-    require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
-    $response->setContent(ob_get_clean());
-    if (NULL !== $logger) {
-        $logger->logWarn($e->getLogMessage() . PHP_EOL . $request . PHP_EOL . $response);
     }
 } catch (Exception $e) {
     $response = new HttpResponse(500);
