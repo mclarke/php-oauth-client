@@ -1,5 +1,5 @@
 #!/bin/sh
-APP_NAME="php-oauth2-client"
+APP_NAME="php-oauth-client"
 
 INSTALL_DIR=`pwd`
 
