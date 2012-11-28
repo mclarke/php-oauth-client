@@ -109,7 +109,7 @@ class Callback
             return $httpResponse;
         }
 
-        if (NULL !== $error) {
+        if (NULL !== $qError) {
             // FIXME: how to get the error back to the API?! the API should be
             // informed as well I guess, or should we notify the user here
             // and stop, or just redirect back to the app?
@@ -117,10 +117,7 @@ class Callback
             // Probably store the error in the DB and let the client api
             // handle it...maybe continue without access if the app would still
             // work or try again, or whatever...
-            $httpResponse = new HttpResponse(500);
-            $httpResponse->setContent("Error!");
-
-            return $httpResponse;
+            throw new CallbackException($qError . ": " . $r->getQueryParameter("error_description"));
         }
 
         // nothing left here...
