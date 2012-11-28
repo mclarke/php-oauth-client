@@ -73,6 +73,18 @@ class Api
             $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $token['access_token']);
         }
 
+#        // do we have a refreshToken?
+#        $token = $this->_storage->getRefreshToken($this->_callbackId, $this->_userId, $this->_scope);
+#        if (!empty($token)) {
+#            // there is something here...
+#            // exchange it for an access_token
+
+#            // FIXME: implement
+#        }
+
+        // if there is no access_token and refresh_token failed, just ask for
+        // authorization again
+
         // no access token
         $client = $clients[$this->_callbackId];
 

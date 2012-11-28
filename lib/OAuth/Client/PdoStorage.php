@@ -66,6 +66,43 @@ class PdoStorage
         }
     }
 
+    public function getRefreshToken($callbackId, $userId, $scope)
+    {
+        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_refresh_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND scope = :scope");
+        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
+        $result = $stmt->execute();
+        if (FALSE === $result) {
+            throw new StorageException("unable to get refresh token", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function storeRefreshToken($callbackId, $userId, $scope, $refreshToken)
+    {
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_refresh_tokens (callback_id, user_id, scope, refresh_token) VALUES(:callback_id, :user_id, :scope, :refresh_token)");
+        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
+        $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
+        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
+            throw new StorageException("unable to store refresh token", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+    }
+
+    public function deleteRefreshToken($callbackId, $userId, $refreshToken)
+    {
+        $stmt = $this->_pdo->prepare("DELETE FROM oauth_refresh_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND refresh_token = :refresh_token");
+        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
+        $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
+        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
+            throw new StorageException("unable to delete refresh token", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+    }
+
     public function getState($callbackId, $state)
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
@@ -128,6 +165,16 @@ class PdoStorage
             )
         ");
 
+        // refresh_tokens
+        $result = $this->_pdo->exec("
+            CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+                callback_id VARCHAR(64) NOT NULL,
+                user_id VARCHAR(64) NOT NULL,
+                refresh_token VARCHAR(64) NOT NULL,
+                scope TEXT DEFAULT NULL,
+                UNIQUE (callback_id, user_id)
+            )
+        ");
     }
 
 }

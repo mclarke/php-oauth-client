@@ -51,12 +51,8 @@ class Callback
             throw new CallbackException("invalid state (not found)");
         }
 
-        try {
-            if (FALSE === $this->_storage->deleteState($callbackId, $qState)) {
-                throw new CallbackException("invalid state");
-            }
-        } catch (StorageException $e) {
-            die($e->getMessage() . $e->getDescription());
+        if (FALSE === $this->_storage->deleteState($callbackId, $qState)) {
+            throw new CallbackException("invalid state");
         }
 
         if (NULL === $qCode && NULL === $qError) {
@@ -100,10 +96,11 @@ class Callback
             $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
             $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
 
-            try {
-                $this->_storage->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
-            } catch (StorageException $e) {
-                die($e->getMessage() . $e->getDescription());
+            $this->_storage->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
+
+            if (array_key_exists("refresh_token", $data)) {
+                // we got a refresh_token, store this as well
+                $this->_storage->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
             }
 
             $httpResponse = new HttpResponse(302);
