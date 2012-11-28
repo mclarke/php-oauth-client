@@ -5,6 +5,8 @@ namespace OAuth\Client;
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;
 use \RestService\Http\HttpResponse as HttpResponse;
+use \RestService\Http\HttpRequest as HttpRequest;
+use \RestService\Http\OutgoingHttpRequest as OutgoingHttpRequest;
 
 class Api
 {
@@ -54,9 +56,12 @@ class Api
         $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
         $configuredClientsJson = file_get_contents($configuredClientsFile);
         $clients = json_decode($configuredClientsJson, TRUE);
+
         if (!is_array($clients) || !array_key_exists($this->_callbackId, $clients)) {
             throw new ApiException("invalid callback id");
         }
+
+        $client = $clients[$this->_callbackId];
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
@@ -73,20 +78,69 @@ class Api
             $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $token['access_token']);
         }
 
-#        // do we have a refreshToken?
-#        $token = $this->_storage->getRefreshToken($this->_callbackId, $this->_userId, $this->_scope);
-#        if (!empty($token)) {
-#            // there is something here...
-#            // exchange it for an access_token
+        // do we have a refreshToken?
+        $token = $this->_storage->getRefreshToken($this->_callbackId, $this->_userId, $this->_scope);
+        if (!empty($token)) {
+            // there is something here...
+            // exchange it for an access_token
+            // FIXME: do somthing with these ugly exceptions
+            try {
+                $p = array (
+                    "refresh_token" => $token['refresh_token'],
+                    "grant_type" => "refresh_token"
+                );
 
-#            // FIXME: implement
-#        }
+                $h = new HttpRequest($client['token_endpoint'], "POST");
+                $h->setHeader("Authorization", "Basic " . base64_encode($client['client_id'] . ':' . $client['client_secret']));
+                $h->setPostParameters($p);
+
+                $this->_logger->logDebug($h);
+
+                $response = OutgoingHttpRequest::makeRequest($h);
+
+                $this->_logger->logDebug($response);
+
+                if (200 !== $response->getStatusCode()) {
+                    throw new ApiException("unable to retrieve access token using refresh token");
+                }
+
+                $data = json_decode($response->getContent(), TRUE);
+                if (!is_array($data)) {
+                    throw new ApiException("unable to decode access token response");
+                }
+
+                $requiredKeys = array('token_type', 'access_token');
+                foreach ($requiredKeys as $key) {
+                    if (!array_key_exists($key, $data)) {
+                        throw new ApiException("missing key in access_token response");
+                    }
+                }
+                $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
+                $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
+
+                $this->_storage->storeAccessToken($this->_callbackId, $this->_userId, $scope, $data['access_token'], time(), $expiresIn);
+
+                // did we get a new refresh_token?
+                if (array_key_exists("refresh_token", $data)) {
+                    // we got a refresh_token, store this as well
+                    $this->_storage->storeRefreshToken($this->_callbackId, $this->_userId, $scope, $data['refresh_token']);
+                }
+
+                return $data['access_token'];
+
+            } catch (ApiException $e) {
+                // remove the refresh_token, it didn't work so get rid of it, it might not be the fault of the refresh_token, but anyway...
+                $this->_storage->deleteRefreshToken($this->_callbackId, $this->_userId, $token['refresh_token']);
+
+                $this->_logger->logWarn("unable to fetch access token using refresh token, falling back to getting a new authorization code...");
+                // do nothing...
+            }
+        }
 
         // if there is no access_token and refresh_token failed, just ask for
         // authorization again
 
-        // no access token
-        $client = $clients[$this->_callbackId];
+        // no access token obtained so far...
 
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));
