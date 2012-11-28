@@ -1,4 +1,4 @@
-serviceName = "php-oauth2-client"
+serviceName = "php-oauth-client"
 
 [OAuth]
 clientList = "/PATH/TO/APP/config/clients.json"

@@ -62,6 +62,10 @@ class Api
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
 
         if (!empty($token)) {
+            if (NULL === $token['expires_in']) {
+                // no known expires_in, so assume token is valid
+                return $token['access_token'];
+            }
             if ($token['issue_time'] + $token['expires_in'] > time()) {
                 // appears valid
                 return $token['access_token'];

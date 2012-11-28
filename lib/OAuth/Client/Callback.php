@@ -27,10 +27,10 @@ class Callback
     public function handleRequest(HttpRequest $r)
     {
         $callbackId = $r->getQueryParameter("id");
-        if(NULL === $callbackId) {
+        if (NULL === $callbackId) {
             throw new CallbackException("no callback id specified");
         }
-        
+
         // FIXME: better validation of config file reading...
         $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
         $configuredClientsJson = file_get_contents($configuredClientsFile);
@@ -47,7 +47,7 @@ class Callback
             throw new CallbackException("invalid state (missing)");
         }
         $state = $this->_storage->getState($callbackId, $qState);
-        if(FALSE === $state) {
+        if (FALSE === $state) {
             throw new CallbackException("invalid state (not found)");
         }
 
@@ -91,15 +91,17 @@ class Callback
                 throw new CallbackException("unable to decode access token response");
             }
 
-            $requiredKeys = array('scope', 'access_token', 'expires_in');
+            $requiredKeys = array('token_type', 'access_token');
             foreach ($requiredKeys as $key) {
                 if (!array_key_exists($key, $data)) {
                     throw new CallbackException("missing key in access_token response");
                 }
             }
+            $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
+            $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
 
             try {
-                $this->_storage->storeAccessToken($callbackId, $state['user_id'], $data['scope'], $data['access_token'], time(), $data['expires_in']);
+                $this->_storage->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
             } catch (StorageException $e) {
                 die($e->getMessage() . $e->getDescription());
             }

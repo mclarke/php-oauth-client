@@ -122,7 +122,7 @@ class PdoStorage
                 user_id VARCHAR(64) NOT NULL,
                 access_token VARCHAR(64) NOT NULL,
                 issue_time INT(11) NOT NULL,
-                expires_in INT(11) NOT NULL,
+                expires_in INT(11) DEFAULT NULL,
                 scope TEXT DEFAULT NULL,
                 UNIQUE (callback_id, user_id)
             )
