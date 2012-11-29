@@ -51,8 +51,16 @@ class Api
 
     public function getAccessToken()
     {
+        // FIXME: deal with user giving less scope than requested
+
+        // FIXME: rename this class to something nice
+        // FIXME: do something with ApiException, rename it at least...
+
         // check if callBackId exists in config
         // FIXME: better validation of config file reading...
+
+        // FIXME: move config to config.ini instead of separate clients file
+
         $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
         $configuredClientsJson = file_get_contents($configuredClientsFile);
         $clients = json_decode($configuredClientsJson, TRUE);
@@ -142,6 +150,8 @@ class Api
 
         // no access token obtained so far...
 
+        // FIXME: delete existing state thingies?
+
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));
         try {
@@ -167,6 +177,44 @@ class Api
         $httpResponse->setHeader("Location", $authorizeUri);
         $httpResponse->sendResponse();
         exit;
+    }
+
+    public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
+    {
+        // we try to get the data from the RS, if that fails (with invalid_token)
+        // we try to obtain another access token after deleting the old one and
+        // try the request to the RS again. If that fails (again) an exception
+        // is thrown and the client application has to deal with it, but that
+        // would imply a serious problem somewhere...
+
+        // FIXME: does this actually work?
+        // we lose count if we redirect to the AS. So only with refresh_token
+        // problems this counting is of any use... need more thinking...
+        for ($i = 0; $i < 2; $i++) {
+            $accessToken = $this->getAccessToken();
+
+            $request = new HttpRequest($requestUri, $requestMethod);
+            $request->setHeaders($requestHeaders);
+            // if Authorization header already exists, it is overwritten here...
+            $request->setHeader("Authorization", "Bearer " . $accessToken);
+
+            if ("POST" === $requestMethod) {
+                $request->setPostParameters($postParameters);
+            }
+
+            $this->_logger->logDebug($request);
+            $response = OutgoingHttpRequest::makeRequest($request);
+            $this->_logger->logDebug($response);
+
+            if (401 === $response->getStatusCode()) {
+                // FIXME: check whether error WWW-Authenticate type is "invalid_token", only then it makes sense to try again
+                $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $accessToken);
+                continue;
+            }
+
+            return $response;
+        }
+        throw new ApiException("unable to obtain access token that was acceptable by the RS, wrong RS?");
     }
 
 }
