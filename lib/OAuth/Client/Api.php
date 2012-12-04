@@ -52,24 +52,15 @@ class Api
     public function getAccessToken()
     {
         // FIXME: deal with user giving less scope than requested
-
         // FIXME: rename this class to something nice
         // FIXME: do something with ApiException, rename it at least...
 
-        // check if callBackId exists in config
-        // FIXME: better validation of config file reading...
-
-        // FIXME: move config to config.ini instead of separate clients file
-
-        $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
-        $configuredClientsJson = file_get_contents($configuredClientsFile);
-        $clients = json_decode($configuredClientsJson, TRUE);
-
-        if (!is_array($clients) || !array_key_exists($this->_callbackId, $clients)) {
+        // check if application is registered
+        $result = $this->_storage->getApplication($this->_callbackId);
+        if (FALSE === $result) {
             throw new ApiException("invalid callback id");
         }
-
-        $client = $clients[$this->_callbackId];
+        $client = json_decode($result['client_data'], TRUE);
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);

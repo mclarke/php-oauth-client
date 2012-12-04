@@ -31,13 +31,12 @@ class Callback
             throw new CallbackException("no callback id specified");
         }
 
-        // FIXME: better validation of config file reading...
-        $configuredClientsFile = $this->_c->getSectionValue('OAuth', 'clientList');
-        $configuredClientsJson = file_get_contents($configuredClientsFile);
-        $clients = json_decode($configuredClientsJson, TRUE);
-        if (!is_array($clients) || !array_key_exists($callbackId, $clients)) {
+        // check if application is registered
+        $result = $this->_storage->getApplication($callbackId);
+        if (FALSE === $result) {
             throw new CallbackException("invalid callback id");
         }
+        $client = json_decode($result['client_data'], TRUE);
 
         $qState = $r->getQueryParameter("state");
         $qCode = $r->getQueryParameter("code");
@@ -60,7 +59,6 @@ class Callback
         }
 
         if (NULL !== $qCode) {
-            $client = $clients[$callbackId];
             $p = array (
                 "code" => $qCode,
                 "grant_type" => "authorization_code"

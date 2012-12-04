@@ -1,8 +1,5 @@
 serviceName = "php-oauth-client"
 
-[OAuth]
-clientList = "/PATH/TO/APP/config/clients.json"
-
 [PdoStorage]
 dsn = "sqlite:/PATH/TO/APP/data/client.sqlite";
 ;dsn = "mysql:host=localhost;dbname=oauth"
