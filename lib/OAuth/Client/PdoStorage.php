@@ -198,6 +198,7 @@ class PdoStorage
             )
         ");
 
+        // applications
         $this->_pdo->exec("
             CREATE TABLE IF NOT EXISTS oauth_applications (
                 app_id VARCHAR(64) NOT NULL,
