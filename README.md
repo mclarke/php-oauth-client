@@ -36,20 +36,20 @@ added to the database and from that point on can be used by the applications.
 
 Example:
 
-{
-    "SURFconext": {
-        "authorize_endpoint": "https://api.surfconext.nl/v1/oauth2/authorize", 
-        "client_id": "REPLACE_ME_WITH_CLIENT_ID", 
-        "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET", 
-        "token_endpoint": "https://api.surfconext.nl/v1/oauth2/token"
-    }, 
-    "demo": {
-        "authorize_endpoint": "http://localhost/php-oauth/authorize.php", 
-        "client_id": "demo", 
-        "client_secret": "foo", 
-        "token_endpoint": "http://localhost/php-oauth/token.php"
+    {
+        "SURFconext": {
+            "authorize_endpoint": "https://api.surfconext.nl/v1/oauth2/authorize", 
+            "client_id": "REPLACE_ME_WITH_CLIENT_ID", 
+            "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET", 
+            "token_endpoint": "https://api.surfconext.nl/v1/oauth2/token"
+        }, 
+        "demo": {
+            "authorize_endpoint": "http://localhost/php-oauth/authorize.php", 
+            "client_id": "demo", 
+            "client_secret": "foo", 
+            "token_endpoint": "http://localhost/php-oauth/token.php"
+        }
     }
-}
 
 Now you can put this in a file `myApplications.json` and register the application 
 with this command:
@@ -75,15 +75,24 @@ location of the OAuth client on your filesystem.
 Below is an example of how to use the API to access an OAuth 2.0 protected 
 resource server:
 
-    require_once "/var/www/html/php-oauth-client/lib/_autoload.php"
-    
-    try { $client = new \OAuth\Client\Api("SURFconext");
+
+    <?php
+
+    require_once "/PATH/TO/php-oauth-client/lib/_autoload.php";
+
+    try { 
+        $client = new \OAuth\Client\Api("demo");
         $client->setUserId("foo");
-        $client->setScope("read");
-        $response = $client->makeRequest("https://api.surfconext.nl/XXX");
+        $client->setScope("authorizations");
+        $client->setReturnUri("http://localhost/oauth/demo/index.php");
+        $response = $client->makeRequest("http://api.example.org/resource");
+        header("Content-Type: application/json");
+        echo $response->getContent();
     } catch (\OAuth\Client\ApiException $e) {
         die($e->getMessage());
     }
+
+    ?>
 
 The `app_id` is specified in the constructor of the class, here `SURFconext`. 
 
