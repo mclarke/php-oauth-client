@@ -138,10 +138,32 @@ class PdoStorage
         }
     }
 
+    public function getApplication($appId)
+    {
+        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_applications WHERE app_id = :app_id");
+        $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
+        $result = $stmt->execute();
+        if (FALSE === $result) {
+            throw new StorageException("unable to get application", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function storeApplication($appId, $clientData)
+    {
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_applications (app_id, client_data) VALUES(:app_id, :client_data)");
+        $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
+        $stmt->bindValue(":client_data", $clientData, PDO::PARAM_STR);
+        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
+            throw new StorageException("unable to store application", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+    }
+
     public function initDatabase()
     {
         // states
-        $result = $this->_pdo->exec("
+        $this->_pdo->exec("
             CREATE TABLE IF NOT EXISTS oauth_states (
                 callback_id VARCHAR(64) NOT NULL,
                 user_id VARCHAR(64) NOT NULL,
@@ -153,7 +175,7 @@ class PdoStorage
         ");
 
         // access_tokens
-        $result = $this->_pdo->exec("
+        $this->_pdo->exec("
             CREATE TABLE IF NOT EXISTS oauth_access_tokens (
                 callback_id VARCHAR(64) NOT NULL,
                 user_id VARCHAR(64) NOT NULL,
@@ -166,13 +188,21 @@ class PdoStorage
         ");
 
         // refresh_tokens
-        $result = $this->_pdo->exec("
+        $this->_pdo->exec("
             CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
                 callback_id VARCHAR(64) NOT NULL,
                 user_id VARCHAR(64) NOT NULL,
                 refresh_token VARCHAR(64) NOT NULL,
                 scope TEXT DEFAULT NULL,
                 UNIQUE (callback_id, user_id)
+            )
+        ");
+
+        $this->_pdo->exec("
+            CREATE TABLE IF NOT EXISTS oauth_applications (
+                app_id VARCHAR(64) NOT NULL,
+                client_data TEXT NOT NULL,
+                PRIMARY KEY (app_id)
             )
         ");
     }

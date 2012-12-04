@@ -54,7 +54,7 @@ Example:
 Now you can put this in a file `myApplications.json` and register the application 
 with this command:
 
-    $ php docs/registerApplication.php myApplications.json
+    $ php docs/registerApplications.php myApplications.json
 
 This will configure two applications with the `app_id` `SURFconext` and `demo`.
 The `client_id` and `client_secret` will be provided to you by the OAuth 
