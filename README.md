@@ -18,6 +18,14 @@ URI location inside the application.
 The approach is similar to the one taken by simpleSAMLphp.
 
 # Installation
+*NOTE*: in the `chown` line you need to use your own user account name!
+
+    $ cd /var/www/html
+    $ su -c 'mkdir php-oauth-client'
+    $ su -c 'chown fkooman:fkooman php-oauth-client'
+    $ git clone git://github.com/fkooman/php-oauth-client.git
+    $ cd php-oauth-client
+
 To install the required dependencies run:
 
     $ sh docs/install_dependencies.sh
@@ -26,9 +34,17 @@ To set file permissions and setup the configuration file run:
 
     $ sh docs/configure.sh
 
+On Debian/Ubuntu you can create 
 To initialize the database run:
 
     $ php docs/initDatabase.php
+
+# Apache Configuration
+The `configure.sh` script displays an example Apache configuration file, you 
+can put the contents that are displayed on your screen in 
+`/etc/httpd/conf.d/php-oauth-client.conf` on Fedora/RHEL/CentOS and in 
+`/etc/apache2/conf.d/php-oauth-client.conf` on Debian/Ubuntu. Don't forget to
+restart Apache.
 
 # Configuration
 Registering applications is very easy. One constructs a JSON object that is 
@@ -37,7 +53,7 @@ added to the database and from that point on can be used by the applications.
 Example:
 
     {
-        "SURFconext": {
+        "wordpress": {
             "authorize_endpoint": "https://api.surfconext.nl/v1/oauth2/authorize", 
             "client_id": "REPLACE_ME_WITH_CLIENT_ID", 
             "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET", 
@@ -56,13 +72,13 @@ with this command:
 
     $ php docs/registerApplications.php myApplications.json
 
-This will configure two applications with the `app_id` `SURFconext` and `demo`.
+This will configure two applications with the `app_id` `wordpress` and `demo`.
 The `client_id` and `client_secret` will be provided to you by the OAuth 
 Authorization Server. The redirect URI you need to provide them contains the
 `app_id` as well. So assuming you installed the client at 
 `http://localhost/php-oauth-client` the redirect URIs will then be:
 
-    http://localhost/php-oauth-client/callback.php?id=SURFconext
+    http://localhost/php-oauth-client/callback.php?id=wordpress
     http://localhost/php-oauth-client/callback.php?id=demo
 
 This should be all that is needed for configuration.
@@ -81,7 +97,7 @@ resource server:
     require_once "/PATH/TO/php-oauth-client/lib/_autoload.php";
 
     try { 
-        $client = new \OAuth\Client\Api("demo");
+        $client = new \OAuth\Client\Api("wordpress");
         $client->setUserId("foo");
         $client->setScope("authorizations");
         $client->setReturnUri("http://localhost/oauth/demo/index.php");
@@ -94,7 +110,7 @@ resource server:
 
     ?>
 
-The `app_id` is specified in the constructor of the class, here `SURFconext`. 
+The `app_id` is specified in the constructor of the class, here `wordpress`. 
 
 The `setUserId` method is used to bind the obtained access token to a specific 
 user. Usually the application you want to integrate OAuth support to will have 
