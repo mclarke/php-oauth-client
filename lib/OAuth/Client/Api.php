@@ -141,7 +141,8 @@ class Api
 
         // no access token obtained so far...
 
-        // FIXME: delete existing state thingies?
+        // delete state if it exists
+        $this->_storage->deleteStateIfExists($this->_callbackId, $this->_userId);
 
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));

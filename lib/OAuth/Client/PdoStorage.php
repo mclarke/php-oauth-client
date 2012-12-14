@@ -128,6 +128,18 @@ class PdoStorage
         }
     }
 
+    public function deleteStateIfExists($callbackId, $userId)
+    {
+        $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND user_id = :user_id");
+        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
+        if (FALSE === $stmt->execute()) {
+            throw new StorageException("unable to delete state", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+
+        return 0 < $stmt->rowCount();
+    }
+
     public function deleteState($callbackId, $state)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
