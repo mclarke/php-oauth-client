@@ -28,6 +28,13 @@ developers to integrate with OAuth 2.0 services as they don't have to deal with
 access tokens themselves and making available a redirect URI location inside 
 the application. This is similar to the approach taken by simpleSAMLphp.
 
+# License
+Licensed under the GNU Lesser General Public License as published by the Free 
+Software Foundation, either version 3 of the License, or (at your option) any 
+later version.
+
+    https://www.gnu.org/licenses/lgpl.html
+
 # Installation
 *NOTE*: in the `chown` line you need to use your own user account name!
 
