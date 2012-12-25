@@ -35,6 +35,10 @@ later version.
 
     https://www.gnu.org/licenses/lgpl.html
 
+This roughly means that if you write some PHP application that uses this client 
+you do not need to release your application under (L)GPL as well. Refer to the 
+license for the exact details.
+
 # Installation
 *NOTE*: in the `chown` line you need to use your own user account name!
 
