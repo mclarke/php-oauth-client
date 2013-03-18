@@ -144,3 +144,9 @@ which the Api was called. If you want to override the return URL your can use
 the `setReturnUri` method as well, but usually this will not be necessary.
 
     $client->setReturnUri("https://myapp.example.org/2012/05/11?sort=ascending");
+
+# Logging and Debugging
+The client has extensive logging functionality available. You can configure the
+log level in `config/config.ini`. The log is by default written to the 
+`data/logs` directory. If you want to log every possible request you can set the
+following in the configuration file: `logLevel = 100`.
