@@ -22,8 +22,8 @@ use \PDO as PDO;
 
 class PdoStorage
 {
-    private $_c;
-    private $_pdo;
+    protected $_c;
+    protected $_pdo;
 
     public function __construct(Config $c)
     {
