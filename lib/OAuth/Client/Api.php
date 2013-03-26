@@ -162,7 +162,7 @@ class Api
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));
         try {
-            $this->_storage->storeState($this->_callbackId, $this->_userId, $state, $this->_returnUri);
+            $this->_storage->storeState($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri, $state);
         } catch (StorageException $e) {
             echo $e->getMessage() . $e->getDescription();
             die();

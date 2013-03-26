@@ -131,13 +131,14 @@ class PdoStorage
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function storeState($callbackId, $userId, $state, $returnUri)
+    public function storeState($callbackId, $userId, $scope, $returnUri, $state)
     {
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_states (callback_id, user_id, state, return_uri) VALUES(:callback_id, :user_id, :state, :return_uri)");
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_states (callback_id, user_id, scope, return_uri, state) VALUES(:callback_id, :user_id, :scope, :return_uri, :state)");
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":state", $state, PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
         $stmt->bindValue(":return_uri", $returnUri, PDO::PARAM_STR);
+        $stmt->bindValue(":state", $state, PDO::PARAM_STR);
         if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
             throw new StorageException("unable to store state", var_export($this->_pdo->errorInfo(), TRUE));
         }
@@ -196,6 +197,7 @@ class PdoStorage
                 user_id VARCHAR(64) NOT NULL,
                 state VARCHAR(64) NOT NULL,
                 return_uri TEXT NOT NULL,
+                scope TEXT DEFAULT NULL,
                 UNIQUE (callback_id, user_id),
                 PRIMARY KEY (state)
             )
