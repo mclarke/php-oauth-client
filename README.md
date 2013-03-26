@@ -8,17 +8,7 @@ application developer you don't need to worry about obtaining an access
 token, you only need to worry about calling the client API and the REST API you 
 try to access.
 
-    +-------------+          +--------+         +---------------+
-    |             |  Client  | PHP    |  OAuth  | OAuth         |
-    | Application +<-------->+ OAuth  +<------->+ Authorization |
-    |             |   API    | Client |         | Server        |
-    +------+------+          +--------+         +---------------+
-           ^
-           |                                    +----------+
-           |    REST API                        | OAuth    |
-           +----------------------------------->+ Resource |
-                                                | Server   |
-                                                +----------+
+![arch](https://github.com/fkooman/php-oauth-client/raw/master/docs/architecture.png)
 
 The application you write needs to be registered at the OAuth client and the 
 OAuth client needs to be registered at the Authorization Server.
