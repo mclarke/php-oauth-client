@@ -150,3 +150,23 @@ The client has extensive logging functionality available. You can configure the
 log level in `config/config.ini`. The log is by default written to the 
 `data/logs` directory. If you want to log every possible request you can set the
 following in the configuration file: `logLevel = 100`.
+
+# Google API
+In order to be able to access the Google APIs using this client, you need to
+specify one extra field, `credentials_in_request_body`, and set it to `true` 
+because Google violates the OAuth specification by not accepting HTTP Basic
+authentication on the token endpoint.
+
+    {
+        "gdrive": {
+            "authorize_endpoint": "https://accounts.google.com/o/oauth2/auth",
+            "client_id": "REPLACE_ME_WITH_CLIENT_ID",
+            "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET",
+            "credentials_in_request_body": true,
+            "redirect_uri": "http://localhost/php-oauth-client/callback.php?id=gdrive",
+            "token_endpoint": "https://accounts.google.com/o/oauth2/token"
+        }
+    }
+
+The credentials can be obtained from Google's API console which can be found
+[here](https://code.google.com/apis/console/).

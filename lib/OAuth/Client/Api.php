@@ -105,7 +105,14 @@ class Api
                 );
 
                 $h = new HttpRequest($client['token_endpoint'], "POST");
-                $h->setHeader("Authorization", "Basic " . base64_encode($client['client_id'] . ':' . $client['client_secret']));
+
+                // deal with specification violation of Google (https://tools.ietf.org/html/rfc6749#section-2.3.1)
+                if (array_key_exists("credentials_in_request_body", $client) && $client['credentials_in_request_body']) {
+                    $p['client_id'] = $client['client_id'];
+                    $p['client_secret'] = $client['client_secret'];
+                } else {
+                    $h->setHeader("Authorization", "Basic " . base64_encode($client['client_id'] . ':' . $client['client_secret']));
+                }
                 $h->setPostParameters($p);
 
                 $this->_logger->logDebug($h);
