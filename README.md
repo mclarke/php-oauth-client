@@ -154,8 +154,9 @@ following in the configuration file: `logLevel = 100`.
 # Google API
 In order to be able to access the Google APIs using this client, you need to
 specify one extra field, `credentials_in_request_body`, and set it to `true` 
-because Google violates the OAuth specification by not accepting HTTP Basic
-authentication on the token endpoint.
+because Google [violates](https://tools.ietf.org/html/rfc6749#section-2.3.1) 
+the OAuth specification by not accepting HTTP Basic authentication on the 
+token endpoint.
 
     {
         "gdrive": {
