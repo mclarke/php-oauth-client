@@ -161,3 +161,40 @@ token endpoint.
 
 The credentials can be obtained from Google's API console which can be found
 [here](https://code.google.com/apis/console/).
+
+The following is an example application for Google Drive to list your files:
+
+    <html>
+    <head>
+    <title>Google Drive File List</title>
+    </head>
+    <body>
+    <h1>Google Drive File List</h1>
+    <p>This demonstration lists the files on your Google Drive.</p>
+    <?php
+    require_once '/PATH/TO/php-oauth-client/lib/_autoload.php';
+
+    use \OAuth\Client\ApiException as ApiException;
+
+    try {
+        $client = new \OAuth\Client\Api("gdrive");
+        $client->setUserId("foo");
+        $client->setScope("https://www.googleapis.com/auth/drive.readonly");
+        $client->setReturnUri("http://localhost/client.php");
+        $response = $client->makeRequest("https://www.googleapis.com/drive/v2/files");
+        $jsonData = $response->getContent();
+        $data = json_decode($jsonData, TRUE);
+        foreach ($data['items'] as $i) {
+            echo "<ul>";
+            if ("drive#file" === $i['kind']) {
+                echo "<li>" . $i['title'] . "</li>";
+            }
+            echo "</ul>";
+        }
+    } catch (ApiException $e) {
+        echo $e->getMessage();
+    }
+    ?>
+    </body>
+    </html>
+
