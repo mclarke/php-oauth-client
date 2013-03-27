@@ -188,6 +188,11 @@ class PdoStorage
         }
     }
 
+    public function dbQuery($query)
+    {
+        $this->_pdo->exec($query);
+    }
+
     public function initDatabase()
     {
         // states
