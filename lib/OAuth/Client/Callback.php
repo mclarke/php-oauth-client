@@ -88,7 +88,8 @@ class Callback
                 $p['client_id'] = $client['client_id'];
                 $p['client_secret'] = $client['client_secret'];
             } else {
-                $h->setHeader("Authorization", "Basic " . base64_encode($client['client_id'] . ':' . $client['client_secret']));
+                $h->setBasicAuthUser($client['client_id']);
+                $h->setBasicAuthPass($client['client_secret']);
             }
 
             $h->setPostParameters($p);
