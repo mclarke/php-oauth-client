@@ -8,7 +8,7 @@ $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTO
 $storage = new PdoStorage($config);
 
 // look for all SQL patch files and execute them in order
-foreach (glob("patches/*.sql") as $filename) {
+foreach (glob("schema/updates/*.sql") as $filename) {
     $sql = file_get_contents($filename);
     $storage->dbQuery($sql);
 }
