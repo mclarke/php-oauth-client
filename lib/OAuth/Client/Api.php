@@ -49,9 +49,17 @@ class Api
         $this->_storage = new PdoStorage($this->_c);
     }
 
-    public function setScope($scope)
+    public function setScope(array $scope)
     {
-        $this->_scope = $scope;
+        foreach ($scope as $s) {
+            $scopePattern = '/^(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+$/';
+            $result = preg_match($scopePattern, $s);
+            if (1 !== $result) {
+               throw new ApiException("invalid scope value: " . $s);
+            }
+        }
+        sort($scope, SORT_STRING);
+        $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
     }
 
     public function setUserId($userId)

@@ -102,7 +102,7 @@ resource server:
     try { 
         $client = new \OAuth\Client\Api("wordpress");
         $client->setUserId("foo");
-        $client->setScope("authorizations");
+        $client->setScope(array("read"));
         $client->setReturnUri("http://localhost/demo/index.php");
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
@@ -179,7 +179,7 @@ The following is an example application for Google Drive to list your files:
     try {
         $client = new \OAuth\Client\Api("gdrive");
         $client->setUserId("foo");
-        $client->setScope("https://www.googleapis.com/auth/drive.readonly");
+        $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
         $response = $client->makeRequest("https://www.googleapis.com/drive/v2/files");
         $jsonData = $response->getContent();
