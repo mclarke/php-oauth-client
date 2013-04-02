@@ -35,6 +35,7 @@ class PdoStorage
         }
 
         $this->_pdo = new PDO($this->_c->getSectionValue('PdoStorage', 'dsn'), $this->_c->getSectionValue('PdoStorage', 'username', FALSE), $this->_c->getSectionValue('PdoStorage', 'password', FALSE), $driverOptions);
+        $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         if (0 === strpos($this->_c->getSectionValue('PdoStorage', 'dsn'), "sqlite:")) {
             // only for SQlite
@@ -186,6 +187,27 @@ class PdoStorage
         if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
             throw new StorageException("unable to store application", var_export($this->_pdo->errorInfo(), TRUE));
         }
+    }
+
+    public function getDatabaseVersion()
+    {
+        $stmt = $this->_pdo->prepare("SELECT MAX(version) AS version, log FROM schema_version");
+        $result = $stmt->execute();
+        if (FALSE === $result) {
+            throw new StorageException("unable to get version", var_export($this->_pdo->errorInfo(), TRUE));
+        }
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateDatabaseVersion($version, $log)
+    {
+        $stmt = $this->_pdo->prepare("INSERT INTO schema_version (version, log) VALUES(:version, :log)");
+        $stmt->bindValue(":version", $version, PDO::PARAM_INT);
+        $stmt->bindValue(":log", $log, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return 1 !== $stmt->rowCount();
     }
 
     public function dbQuery($query)
