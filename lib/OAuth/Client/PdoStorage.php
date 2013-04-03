@@ -22,8 +22,8 @@ use \PDO as PDO;
 
 class PdoStorage
 {
-    protected $_c;
-    protected $_pdo;
+    private $_c;
+    private $_pdo;
 
     public function __construct(Config $c)
     {
@@ -49,10 +49,7 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $result = $stmt->execute();
-        if (FALSE === $result) {
-            throw new StorageException("unable to get access token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -66,9 +63,10 @@ class PdoStorage
         $stmt->bindValue(":access_token", $accessToken, PDO::PARAM_STR);
         $stmt->bindValue(":issue_time", $issueTime, PDO::PARAM_INT);
         $stmt->bindValue(":expires_in", $expiresIn, PDO::PARAM_INT);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to store access token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount();
+
     }
 
     public function deleteAccessToken($callbackId, $userId, $accessToken)
@@ -77,9 +75,9 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $accessToken, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to delete access token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount();
     }
 
     public function getRefreshToken($callbackId, $userId, $scope)
@@ -88,10 +86,7 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $result = $stmt->execute();
-        if (FALSE === $result) {
-            throw new StorageException("unable to get refresh token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -103,9 +98,9 @@ class PdoStorage
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
         $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to store refresh token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount()) {
     }
 
     public function deleteRefreshToken($callbackId, $userId, $refreshToken)
@@ -114,9 +109,9 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to delete refresh token", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute()
+
+        return 1 === $stmt->rowCount()) {
     }
 
     public function getState($callbackId, $state)
@@ -124,10 +119,7 @@ class PdoStorage
         $stmt = $this->_pdo->prepare("SELECT * FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
-        $result = $stmt->execute();
-        if (FALSE === $result) {
-            throw new StorageException("unable to get state", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -140,21 +132,20 @@ class PdoStorage
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
         $stmt->bindValue(":return_uri", $returnUri, PDO::PARAM_STR);
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to store state", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount()) {
     }
 
+    /** DEPRECATED? **/
     public function deleteStateIfExists($callbackId, $userId)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND user_id = :user_id");
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute()) {
-            throw new StorageException("unable to delete state", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
-        return 0 < $stmt->rowCount();
+        return 1 === $stmt->rowCount();
     }
 
     public function deleteState($callbackId, $state)
@@ -162,19 +153,16 @@ class PdoStorage
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to delete state", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount();
     }
 
     public function getApplication($appId)
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM oauth_applications WHERE app_id = :app_id");
         $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
-        $result = $stmt->execute();
-        if (FALSE === $result) {
-            throw new StorageException("unable to get application", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -184,18 +172,15 @@ class PdoStorage
         $stmt = $this->_pdo->prepare("INSERT INTO oauth_applications (app_id, client_data) VALUES(:app_id, :client_data)");
         $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
         $stmt->bindValue(":client_data", $clientData, PDO::PARAM_STR);
-        if (FALSE === $stmt->execute() || 1 !== $stmt->rowCount()) {
-            throw new StorageException("unable to store application", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount()) {
     }
 
     public function getDatabaseVersion()
     {
         $stmt = $this->_pdo->prepare("SELECT MAX(version) AS version, log FROM schema_version");
-        $result = $stmt->execute();
-        if (FALSE === $result) {
-            throw new StorageException("unable to get version", var_export($this->_pdo->errorInfo(), TRUE));
-        }
+        $stmt->execute();
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -207,7 +192,7 @@ class PdoStorage
         $stmt->bindValue(":log", $log, PDO::PARAM_STR);
         $stmt->execute();
 
-        return 1 !== $stmt->rowCount();
+        return 1 === $stmt->rowCount();
     }
 
     public function dbQuery($query)
