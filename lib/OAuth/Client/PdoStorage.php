@@ -100,7 +100,7 @@ class PdoStorage
         $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
         $stmt->execute();
 
-        return 1 === $stmt->rowCount()) {
+        return 1 === $stmt->rowCount();
     }
 
     public function deleteRefreshToken($callbackId, $userId, $refreshToken)
@@ -109,9 +109,9 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
-        $stmt->execute()
+        $stmt->execute();
 
-        return 1 === $stmt->rowCount()) {
+        return 1 === $stmt->rowCount();
     }
 
     public function getState($callbackId, $state)
@@ -134,7 +134,7 @@ class PdoStorage
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
         $stmt->execute();
 
-        return 1 === $stmt->rowCount()) {
+        return 1 === $stmt->rowCount();
     }
 
     /** DEPRECATED? **/
@@ -174,7 +174,7 @@ class PdoStorage
         $stmt->bindValue(":client_data", $clientData, PDO::PARAM_STR);
         $stmt->execute();
 
-        return 1 === $stmt->rowCount()) {
+        return 1 === $stmt->rowCount();
     }
 
     public function getDatabaseVersion()
