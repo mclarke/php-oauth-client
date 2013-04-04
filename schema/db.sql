@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS oauth_access_tokens
      callback_id  VARCHAR(255) NOT NULL,
      user_id      VARCHAR(255) NOT NULL,
      access_token VARCHAR(255) NOT NULL,
-     issue_time   INT(11) NOT NULL,
-     expires_in   INT(11) DEFAULT NULL,
+     issue_time   INTEGER NOT NULL,
+     expires_in   INTEGER DEFAULT NULL,
      scope        VARCHAR(255) DEFAULT NULL,
      UNIQUE (callback_id, user_id, scope)
   );
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS oauth_applications
 
 CREATE TABLE IF NOT EXISTS db_changelog
   (
-     patch_number INT(11) NOT NULL,
+     patch_number INTEGER NOT NULL,
      description TEXT NOT NULL,
      PRIMARY KEY (patch_number)
   );
