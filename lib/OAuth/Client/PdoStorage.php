@@ -177,19 +177,21 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
-    public function getDatabaseVersion()
+    public function getChangeInfo()
     {
-        $stmt = $this->_pdo->prepare("SELECT MAX(version) AS version, log FROM schema_version");
+        $stmt = $this->_pdo->prepare("SELECT MAX(patch_number) AS patch_number, description FROM db_changelog WHERE patch_number IS NOT NULL");
         $stmt->execute();
+        // ugly hack because query will always return a result, even if there is none...
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return NULL === $result['patch_number'] ? FALSE : $result;
     }
 
-    public function updateDatabaseVersion($version, $log)
+    public function addChangeInfo($patchNumber, $description)
     {
-        $stmt = $this->_pdo->prepare("INSERT INTO schema_version (version, log) VALUES(:version, :log)");
-        $stmt->bindValue(":version", $version, PDO::PARAM_INT);
-        $stmt->bindValue(":log", $log, PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("INSERT INTO db_changelog (patch_number, description) VALUES(:patch_number, :description)");
+        $stmt->bindValue(":patch_number", $patchNumber, PDO::PARAM_INT);
+        $stmt->bindValue(":description", $description, PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();

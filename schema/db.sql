@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS oauth_applications
      PRIMARY KEY (app_id)
   );
 
-CREATE TABLE IF NOT EXISTS schema_version
+CREATE TABLE IF NOT EXISTS db_changelog
   (
-     version	INT(11) NOT NULL,
-     log	TEXT NOT NULL,
-     PRIMARY KEY (version)
+     patch_number INT(11) NOT NULL,
+     description TEXT NOT NULL,
+     PRIMARY KEY (patch_number)
   );

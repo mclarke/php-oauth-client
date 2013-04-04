@@ -16,4 +16,3 @@ $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTO
 $storage = new PdoStorage($config);
 $sql = file_get_contents('schema/db.sql');
 $storage->dbQuery($sql);
-$storage->updateDatabaseVersion(0, 'initial schema');
