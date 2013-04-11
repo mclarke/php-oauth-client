@@ -19,6 +19,7 @@ namespace OAuth\Client;
 
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;
+use \RestService\Utils\Json as Json;
 use \RestService\Http\HttpResponse as HttpResponse;
 use \RestService\Http\HttpRequest as HttpRequest;
 use \RestService\Http\OutgoingHttpRequest as OutgoingHttpRequest;
@@ -83,7 +84,7 @@ class Api
         if (FALSE === $result) {
             throw new ApiException("invalid callback id");
         }
-        $client = json_decode($result['client_data'], TRUE);
+        $client = Json::dec($result['client_data']);
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
@@ -134,7 +135,7 @@ class Api
                     throw new ApiException("unable to retrieve access token using refresh token");
                 }
 
-                $data = json_decode($response->getContent(), TRUE);
+                $data = Json::dec($response->getContent());
                 if (!is_array($data)) {
                     throw new ApiException("unable to decode access token response");
                 }

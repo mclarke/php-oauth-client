@@ -19,6 +19,7 @@ namespace OAuth\Client;
 
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;
+use \RestService\Utils\Json as Json;
 use \RestService\Http\HttpRequest as HttpRequest;
 use \RestService\Http\HttpResponse as HttpResponse;
 use \RestService\Http\OutgoingHttpRequest as OutgoingHttpRequest;
@@ -51,7 +52,7 @@ class Callback
         if (FALSE === $result) {
             throw new CallbackException("invalid callback id");
         }
-        $client = json_decode($result['client_data'], TRUE);
+        $client = Json::dec($result['client_data']);
 
         $qState = $r->getQueryParameter("state");
         $qCode = $r->getQueryParameter("code");
@@ -104,7 +105,7 @@ class Callback
                 throw new CallbackException("unable to retrieve access token using authorization code");
             }
 
-            $data = json_decode($response->getContent(), TRUE);
+            $data = Json::dec($response->getContent());
             if (!is_array($data)) {
                 throw new CallbackException("unable to decode access token response");
             }

@@ -10,6 +10,7 @@ $c2->register();
 
 use \RestService\Utils\Config as Config;
 use \OAuth\Client\PdoStorage as PdoStorage;
+use \RestService\Utils\Json as Json;
 
 $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
 
@@ -24,7 +25,7 @@ if (FALSE === $jsonData) {
         die("ERROR: unable to read file" . PHP_EOL);
 }
 
-$data = json_decode($jsonData, TRUE);
+$data = Json::dec($jsonData);
 if (NULL === $data || !is_array($data)) {
     die("ERROR: data is not JSON or wrong format" . PHP_EOL);
 }
@@ -33,6 +34,6 @@ foreach ($data as $key => $value) {
     if (FALSE === $storage->getApplication($key)) {
         // does not exist yet, add
         echo "Adding '" . $key . "'..." . PHP_EOL;
-        $storage->storeApplication($key, json_encode($value));
+        $storage->storeApplication($key, Json::enc($value));
     }
 }
