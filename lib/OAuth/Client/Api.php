@@ -84,7 +84,7 @@ class Api
         if (FALSE === $result) {
             throw new ApiException("invalid callback id");
         }
-        $client = Json::dec($result['client_data']);
+        $client = Client::fromJson($result['client_data']);
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
@@ -113,15 +113,15 @@ class Api
                     "grant_type" => "refresh_token"
                 );
 
-                $h = new HttpRequest($client['token_endpoint'], "POST");
+                $h = new HttpRequest($client->getTokenEndpoint(), "POST");
 
                 // deal with specification violation of Google (https://tools.ietf.org/html/rfc6749#section-2.3.1)
-                if (array_key_exists("credentials_in_request_body", $client) && $client['credentials_in_request_body']) {
-                    $p['client_id'] = $client['client_id'];
-                    $p['client_secret'] = $client['client_secret'];
+                if ($client->getCredentialsInRequestBody()) {
+                    $p['client_id'] = $client->getClientId();
+                    $p['client_secret'] = $client->getClientSecret();
                 } else {
-                    $h->setBasicAuthUser($client['client_id']);
-                    $h->setBasicAuthUser($client['client_secret']);
+                    $h->setBasicAuthUser($client->getClientId());
+                    $h->setBasicAuthUser($client->getClientSecret());
                 }
                 $h->setPostParameters($p);
 
@@ -185,18 +185,18 @@ class Api
             die();
         }
         $q = array (
-            "client_id" => $client['client_id'],
+            "client_id" => $client->getClientId(),
             "response_type" => "code",
             "state" => $state,
         );
         if (NULL !== $this->_scope) {
             $q['scope'] = $this->_scope;
         }
-        if (array_key_exists('redirect_uri', $client) && !empty($client['redirect_uri'])) {
-            $q['redirect_uri'] = $client['redirect_uri'];
+        if ($client->getRedirectUri()) {
+            $q['redirect_uri'] = $client->getRedirectUri();
         }
-        $separator = (FALSE === strpos($client['authorize_endpoint'], "?")) ? "?" : "&";
-        $authorizeUri = $client['authorize_endpoint'] . $separator . http_build_query($q);
+        $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
+        $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
         $httpResponse = new HttpResponse(302);
         $httpResponse->setHeader("Location", $authorizeUri);
         $httpResponse->sendResponse();

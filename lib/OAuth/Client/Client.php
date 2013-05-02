@@ -30,6 +30,10 @@ class Client
 
         $c = new static($data['client_id'], $data['client_secret'], $data['authorize_endpoint'], $data['token_endpoint']);
 
+        if (isset($data['redirect_uri'])) {
+            $c->setRedirectUri($data['redirect_uri']);
+        }
+
         if (isset($data['credentials_in_request_body'])) {
             $c->setCredentialsInRequestBody($data['credentials_in_request_body']);
         }
@@ -117,6 +121,16 @@ class Client
         return isset($this->_data['client_secret']) ? $this->_data['client_secret'] : FALSE;
     }
 
+    public function setRedirectUri($r)
+    {
+        $this->_data['redirect_uri'] = $this->_validateEndpoint($r);
+    }
+
+    public function getRedirectUri()
+    {
+        return $this->_data['redirect_uri'];
+    }
+
     public function setCredentialsInRequestBody($c)
     {
         $this->_data['credentials_in_request_body'] = (bool) $c;
@@ -130,6 +144,11 @@ class Client
     public function toArray()
     {
         return $this->_data;
+    }
+
+    public function toJson()
+    {
+        return Json::enc($this->_data);
     }
 
 }
