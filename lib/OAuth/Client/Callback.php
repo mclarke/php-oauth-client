@@ -30,7 +30,7 @@ class Callback
     private $_c;
     private $_l;
 
-    private $_clientsConfigFile;
+    private $_clientConfigFile;
 
     private $_storage;
 
@@ -39,7 +39,7 @@ class Callback
         $this->_c = $c;
         $this->_l = $l;
 
-        $this->_clientsConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientsConfig.json";
+        $this->_clientConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
 
         $this->_storage = new PdoStorage($c);
     }
@@ -59,7 +59,7 @@ class Callback
 //         }
 //         $client = Json::dec($result['client_data']);
 
-        $client = Client::fromConfig($this->_clientsConfigFile, $callbackId);
+        $client = Client::fromConfig($this->_clientConfigFile, $callbackId);
 
         $qState = $r->getQueryParameter("state");
         $qCode = $r->getQueryParameter("code");

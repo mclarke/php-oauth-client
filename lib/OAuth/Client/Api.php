@@ -28,7 +28,7 @@ class Api
 {
     private $_callbackId;
 
-    private $_clientsConfigFile;
+    private $_clientConfigFile;
 
     private $_userId;
     private $_scope;
@@ -43,7 +43,7 @@ class Api
         $this->_callbackId = $callbackId;
 
         // set default clients config file, but it can be overriden using the setConfigFile method
-        $this->_clientsConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientsConfig.json";
+        $this->_clientConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
 
         $this->_userId = NULL;
         $this->_scope = NULL;
@@ -90,7 +90,7 @@ class Api
         // FIXME: do something with ApiException, rename it at least...
 
         // check if application is registered
-        $client = Client::fromConfig($this->_clientsConfigFile, $this->_callbackId);
+        $client = Client::fromConfig($this->_clientConfigFile, $this->_callbackId);
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);

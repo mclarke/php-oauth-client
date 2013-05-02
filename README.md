@@ -5,18 +5,10 @@ described in RFC 6749, section 4.1.
 The client can be controlled through a simple PHP API that is used from the 
 application trying to access an OAuth 2.0 protected resource server. As an 
 application developer you don't need to worry about obtaining an access
-token, you only need to worry about calling the client API and the REST API you 
-try to access.
+token and handling browser redirects: you only need to worry about calling 
+the client API and the REST API you try to access.
 
 ![arch](https://github.com/fkooman/php-oauth-client/raw/master/docs/architecture.png)
-
-The application you write needs to be registered at the OAuth client and the 
-OAuth client needs to be registered at the Authorization Server.
-
-This approach was chosen to make it as easy as possible for application 
-developers to integrate with OAuth 2.0 services as they don't have to deal with 
-access tokens themselves and making available a redirect URI location inside 
-the application. This is similar to the approach taken by simpleSAMLphp.
 
 # License
 Licensed under the GNU Lesser General Public License as published by the Free 
@@ -59,12 +51,12 @@ restart Apache.
 
 # Configuration
 Registering your application is very easy. One constructs a JSON object that is 
-added to the database and from that point on can be used by the applications.
+used for configuration and can then be used through the PHP API.
 
 Example:
 
     {
-        "wordpress": {
+        "SURFconext": {
             "authorize_endpoint": "https://api.surfconext.nl/v1/oauth2/authorize", 
             "client_id": "REPLACE_ME_WITH_CLIENT_ID", 
             "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET", 
@@ -72,35 +64,33 @@ Example:
         }
     }
 
-Now you can put this in a file `wordpress.json` and register the application 
-with this command:
+Now you can put this in a file in the `config` directory with the name 
+`clientConfig.json`. Replace the `client_id` and `client_secret` with the 
+values you obtained for the OAuth 2.0 authorization server.
 
-    $ php docs/registerApplications.php wordpress.json
+The `callbackId` here is `SURFconext`, but can be anything describing the 
+client, or what the client is used for. This identifier is used as part of the 
+redirect URI you need to provide to the AS during registration. Assuming you 
+installed the client at `http://localhost/php-oauth-client`, the redirect URI 
+will be:
 
-This will configure the application with the `app_id` `wordpress`.
-The `client_id` and `client_secret` will be provided to you by the OAuth 
-Authorization Server. The redirect URI you need to provide them contains the
-`app_id` as well. So assuming you installed the client at 
-`http://localhost/php-oauth-client` the redirect URI will be:
+    http://localhost/php-oauth-client/callback.php?id=SURFconext
 
-    http://localhost/php-oauth-client/callback.php?id=wordpress
-
-This should be all that is needed for configuration of the OAuth client.
+This should be all that is needed for configuring the OAuth client.
 
 # Application Integration
 If you want to integrate this OAuth client in your application you need to know
-a few things: the `app_id` you used above for your application and the 
-location of the OAuth client on your filesystem.
+a few things: the `callbackId` for the client you used above for your 
+application and the location of the OAuth client on your filesystem.
 
 Below is an example of how to use the API to access an OAuth 2.0 protected 
 resource server:
-
 
     <?php
     require_once "/PATH/TO/php-oauth-client/lib/_autoload.php";
 
     try { 
-        $client = new \OAuth\Client\Api("wordpress");
+        $client = new \OAuth\Client\Api("SURFconext");
         $client->setUserId("foo");
         $client->setScope(array("read"));
         $client->setReturnUri("http://localhost/demo/index.php");
@@ -112,7 +102,8 @@ resource server:
     }
     ?>
 
-The `app_id` is specified in the constructor of the class, here `wordpress`. 
+The `callbackId` is specified in the constructor of the class, here 
+`SURFconext`. 
 
 The `setUserId` method is used to bind the obtained access token to a specific 
 user. Usually the application you want to integrate OAuth support to will have 
@@ -149,7 +140,7 @@ the OAuth specification by not accepting HTTP Basic authentication on the
 token endpoint.
 
     {
-        "gdrive": {
+        "Google Drive": {
             "authorize_endpoint": "https://accounts.google.com/o/oauth2/auth",
             "client_id": "REPLACE_ME_WITH_CLIENT_ID",
             "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET",
@@ -174,10 +165,8 @@ The following is an example application for Google Drive to list your files:
     <?php
     require_once '/PATH/TO/php-oauth-client/lib/_autoload.php';
 
-    use \OAuth\Client\ApiException as ApiException;
-
     try {
-        $client = new \OAuth\Client\Api("gdrive");
+        $client = new \OAuth\Client\Api("Google Drive");
         $client->setUserId("foo");
         $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
@@ -191,10 +180,9 @@ The following is an example application for Google Drive to list your files:
             }
             echo "</ul>";
         }
-    } catch (ApiException $e) {
+    } catch (\OAuth\Client\ApiException $e) {
         echo $e->getMessage();
     }
     ?>
     </body>
     </html>
-
