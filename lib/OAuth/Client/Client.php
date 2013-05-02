@@ -48,11 +48,11 @@ class Client
             throw new ClientException("endpoint must be non empty string");
         }
         if (FALSE === filter_var($r, FILTER_VALIDATE_URL)) {
-            throw new ClientException("endpoint should be valid URL");
+            throw new ClientException("endpoint must be valid URL");
         }
         // not allowed to have a fragment (#) in it
         if (NULL !== parse_url($r, PHP_URL_FRAGMENT)) {
-            throw new ClientException("endpoint cannot contain a fragment");
+            throw new ClientException("endpoint must not contain a fragment");
         }
 
         return $r;
@@ -84,7 +84,7 @@ class Client
             throw new ClientException("invalid character(s) in client_id or client_secret");
         }
         if (FALSE !== strpos($s, ":")) {
-            throw new ClientException("invalid character in client_id or client_secret");
+            throw new ClientException("client_id and/or client_secret cannot contain colon ':'");
         }
 
         return $s;
@@ -92,6 +92,9 @@ class Client
 
     public function setClientId($s)
     {
+        if (!is_string($s) || empty($s)) {
+            throw new ClientException("client_id must be non empty string");
+        }
         $this->_data['client_id'] = $this->_validateBasicUserPass($s);
     }
 
@@ -102,6 +105,10 @@ class Client
 
     public function setClientSecret($s)
     {
+        if (!is_string($s)) {
+            // client_secret can be empty if no password is set (NOT RECOMMENDED!)
+            throw new ClientException("client_secret must be string");
+        }
         $this->_data['client_secret'] = $this->_validateBasicUserPass($s);
     }
 
