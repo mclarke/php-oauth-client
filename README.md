@@ -50,10 +50,8 @@ can put the contents that are displayed on your screen in
 restart Apache.
 
 # Configuration
-Registering your application is very easy. One constructs a JSON object that is 
-used for configuration and can then be used through the PHP API.
-
-Example:
+Registering a client is very easy. One constructs a file with a JSON formatted
+configuration entry. Example:
 
     {
         "SURFconext": {
@@ -66,22 +64,21 @@ Example:
 
 Now you can put this in a file in the `config` directory with the name 
 `clientConfig.json`. Replace the `client_id` and `client_secret` with the 
-values you obtained for the OAuth 2.0 authorization server.
+values you obtained during client registration.
 
 The `callbackId` here is `SURFconext`, but can be anything describing the 
-client, or what the client is used for. This identifier is used as part of the 
-redirect URI you need to provide to the AS during registration. Assuming you 
-installed the client at `http://localhost/php-oauth-client`, the redirect URI 
-will be:
+client, or what the client is used for. This `callbackId` is part of the 
+redirect URI you need to provide during registration. Assuming you installed 
+the client at `http://localhost/php-oauth-client`, the redirect URI will be:
 
     http://localhost/php-oauth-client/callback.php?id=SURFconext
-
-This should be all that is needed for configuring the OAuth client.
 
 # Application Integration
 If you want to integrate this OAuth client in your application you need to know
 a few things: the `callbackId` for the client you used above for your 
-application and the location of the OAuth client on your filesystem.
+application, the location of the OAuth client on your filesystem and the URL 
+and scope value you need to request. Usually this information is available 
+during the registration process.
 
 Below is an example of how to use the API to access an OAuth 2.0 protected 
 resource server:
@@ -134,18 +131,19 @@ following in the configuration file: `logLevel = 100`.
 
 # Google API
 In order to be able to access the Google APIs using this client, you need to
-specify one extra field, `credentials_in_request_body`, and set it to `true` 
+specify two extra fields, `credentials_in_request_body`, and set it to `true` 
 because Google [violates](https://tools.ietf.org/html/rfc6749#section-2.3.1) 
 the OAuth specification by not accepting HTTP Basic authentication on the 
-token endpoint.
+token endpoint. The other field is `redirect_uri` as it is not sufficient to
+specify this during the registration process at Google.
 
     {
-        "Google Drive": {
+        "drive": {
             "authorize_endpoint": "https://accounts.google.com/o/oauth2/auth",
             "client_id": "REPLACE_ME_WITH_CLIENT_ID",
             "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET",
             "credentials_in_request_body": true,
-            "redirect_uri": "http://localhost/php-oauth-client/callback.php?id=gdrive",
+            "redirect_uri": "http://localhost/php-oauth-client/callback.php?id=drive",
             "token_endpoint": "https://accounts.google.com/o/oauth2/token"
         }
     }
@@ -166,7 +164,7 @@ The following is an example application for Google Drive to list your files:
     require_once '/PATH/TO/php-oauth-client/lib/_autoload.php';
 
     try {
-        $client = new \OAuth\Client\Api("Google Drive");
+        $client = new \OAuth\Client\Api("drive");
         $client->setUserId("foo");
         $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
