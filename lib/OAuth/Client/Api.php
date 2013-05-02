@@ -73,11 +73,6 @@ class Api
         $this->_userId = $userId;
     }
 
-    public function setConfigFile($file)
-    {
-        $this->_configFile = $file;
-    }
-
     public function setReturnUri($returnUri)
     {
         $this->_returnUri = $returnUri;
