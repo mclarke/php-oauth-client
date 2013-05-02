@@ -29,12 +29,17 @@ class Callback
 
     private $_c;
     private $_l;
+
+    private $_clientsConfigFile;
+
     private $_storage;
 
     public function __construct(Config $c, Logger $l)
     {
         $this->_c = $c;
         $this->_l = $l;
+
+        $this->_clientsConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientsConfig.json";
 
         $this->_storage = new PdoStorage($c);
     }
@@ -48,11 +53,13 @@ class Callback
         }
 
         // check if application is registered
-        $result = $this->_storage->getApplication($callbackId);
-        if (FALSE === $result) {
-            throw new CallbackException("invalid callback id");
-        }
-        $client = Json::dec($result['client_data']);
+//         $result = $this->_storage->getApplication($callbackId);
+//         if (FALSE === $result) {
+//             throw new CallbackException("invalid callback id");
+//         }
+//         $client = Json::dec($result['client_data']);
+
+        $client = Client::fromConfig($this->_clientsConfigFile, $callbackId);
 
         $qState = $r->getQueryParameter("state");
         $qCode = $r->getQueryParameter("code");
@@ -79,18 +86,18 @@ class Callback
                 "code" => $qCode,
                 "grant_type" => "authorization_code"
             );
-            if (array_key_exists('redirect_uri', $client) && !empty($client['redirect_uri'])) {
-                $p['redirect_uri'] = $client['redirect_uri'];
+            if ($client->getRedirectUri()) {
+                $p['redirect_uri'] = $client->getRedirectUri();
             }
-            $h = new HttpRequest($client['token_endpoint'], "POST");
+            $h = new HttpRequest($client->getTokenEndpoint(), "POST");
 
             // deal with specification violation of Google (https://tools.ietf.org/html/rfc6749#section-2.3.1)
-            if (array_key_exists("credentials_in_request_body", $client) && $client['credentials_in_request_body']) {
-                $p['client_id'] = $client['client_id'];
-                $p['client_secret'] = $client['client_secret'];
+            if ($client->getCredentialsInRequestBody()) {
+                $p['client_id'] = $client->getClientId();
+                $p['client_secret'] = $client->getClientSecret();
             } else {
-                $h->setBasicAuthUser($client['client_id']);
-                $h->setBasicAuthPass($client['client_secret']);
+                $h->setBasicAuthUser($client->getClientId());
+                $h->setBasicAuthPass($client->getClientSecret());
             }
 
             $h->setPostParameters($p);

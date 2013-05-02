@@ -158,25 +158,6 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
-    public function getApplication($appId)
-    {
-        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_applications WHERE app_id = :app_id");
-        $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function storeApplication($appId, $clientData)
-    {
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_applications (app_id, client_data) VALUES(:app_id, :client_data)");
-        $stmt->bindValue(":app_id", $appId, PDO::PARAM_STR);
-        $stmt->bindValue(":client_data", $clientData, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return 1 === $stmt->rowCount();
-    }
-
     public function getChangeInfo()
     {
         $stmt = $this->_pdo->prepare("SELECT MAX(patch_number) AS patch_number, description FROM db_changelog WHERE patch_number IS NOT NULL");

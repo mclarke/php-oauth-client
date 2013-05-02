@@ -46,6 +46,26 @@ class Client
         return self::fromArray(Json::dec($jsonData));
     }
 
+    public static function fromConfig($configFile, $callbackId)
+    {
+        $jsonData = @file_get_contents($configFile);
+        if (FALSE === $jsonData) {
+            throw new ApiException("unable to open configuration file");
+        }
+        $data = Json::dec($jsonData);
+        if (!is_array($data)) {
+            throw new ApiException("malformed configuration file");
+        }
+        if (!isset($data[$callbackId])) {
+            throw new ApiException("callbackId not registered");
+        }
+        if (!is_array($data[$callbackId])) {
+            throw new ApiException("malformed configuration for callbackId");
+        }
+
+        return self::fromArray($data[$callbackId]);
+    }
+
     private function _validateEndpoint($r)
     {
         if (!is_string($r) || empty($r)) {
