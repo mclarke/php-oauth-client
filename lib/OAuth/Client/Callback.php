@@ -53,12 +53,6 @@ class Callback
         }
 
         // check if application is registered
-//         $result = $this->_storage->getApplication($callbackId);
-//         if (FALSE === $result) {
-//             throw new CallbackException("invalid callback id");
-//         }
-//         $client = Json::dec($result['client_data']);
-
         $client = Client::fromConfig($this->_clientConfigFile, $callbackId);
 
         $qState = $r->getQueryParameter("state");
