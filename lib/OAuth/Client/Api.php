@@ -42,8 +42,6 @@ class Api
     public function __construct($callbackId)
     {
         $this->_callbackId = $callbackId;
-
-        // set default clients config file, but it can be overriden using the setConfigFile method
         $this->_clientConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
 
         $this->_userId = NULL;
@@ -197,12 +195,32 @@ class Api
         if ($client->getRedirectUri()) {
             $q['redirect_uri'] = $client->getRedirectUri();
         }
+
         $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
         $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
-        $httpResponse = new HttpResponse(302);
-        $httpResponse->setHeader("Location", $authorizeUri);
-        $httpResponse->sendResponse();
-        exit;
+
+        if ($client->getEnableDebug()) {
+            // show the request details and allow the user to submit it instead
+            // of automatically submitting it
+            $tplData = array(
+                "authorizeUri" => $client->getAuthorizeEndpoint(),
+                "authorizeUriQuery" => $authorizeUri,
+                "queryParameters" => $q,
+            );
+            extract($tplData);
+            $_e = function($m) {
+                return htmlentities($m, ENT_QUOTES, "UTF-8");
+            };
+            ob_start();
+            require dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "debugAuthorizeRequest.php";
+            echo ob_get_clean();
+            exit;
+        } else {
+            $httpResponse = new HttpResponse(302);
+            $httpResponse->setHeader("Location", $authorizeUri);
+            $httpResponse->sendResponse();
+            exit;
+        }
     }
 
     public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())

@@ -38,6 +38,10 @@ class Client
             $c->setCredentialsInRequestBody($data['credentials_in_request_body']);
         }
 
+        if (isset($data['enable_debug'])) {
+            $c->setEnableDebug($data['enable_debug']);
+        }
+
         return $c;
     }
 
@@ -159,6 +163,16 @@ class Client
     public function getCredentialsInRequestBody()
     {
         return isset($this->_data['credentials_in_request_body']) ? $this->_data['credentials_in_request_body'] : FALSE;
+    }
+
+    public function setEnableDebug($d)
+    {
+        $this->_data['enable_debug'] = (bool) $d;
+    }
+
+    public function getEnableDebug()
+    {
+        return isset($this->_data['enable_debug']) ? $this->_data['enable_debug'] : FALSE;
     }
 
     public function toArray()
