@@ -22,6 +22,7 @@ use \RestService\Utils\Logger as Logger;
 use \RestService\Utils\Json as Json;
 use \RestService\Http\HttpResponse as HttpResponse;
 use \RestService\Http\HttpRequest as HttpRequest;
+use \RestService\Http\IncomingHttpRequest as IncomingHttpRequest;
 use \RestService\Http\OutgoingHttpRequest as OutgoingHttpRequest;
 
 class Api
@@ -47,7 +48,10 @@ class Api
 
         $this->_userId = NULL;
         $this->_scope = NULL;
-        $this->_returnUri = NULL;
+
+        // determine the URL from which this script was called...
+        $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
+        $this->_returnUri = $request->getRequestUri()->getUri();
 
         $this->_c = new Config(dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
         $this->_logger = new Logger($this->_c->getSectionValue('Log', 'logLevel'), $this->_c->getValue('serviceName'), $this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logMail', FALSE));

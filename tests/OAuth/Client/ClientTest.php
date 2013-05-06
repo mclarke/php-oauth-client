@@ -10,6 +10,20 @@ class ClientTest extends PHPUnit_Framework_TestCase
 
     public function testSimple()
     {
+        $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token");
+        $c = Client::fromArray($data);
+        $this->assertEquals("foo", $c->getClientId());
+        $this->assertEquals("bar", $c->getClientSecret());
+        $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
+        $this->assertEquals("http://www.example.org/token", $c->getTokenEndpoint());
+        $this->assertFalse($c->getRedirectUri());
+        $this->assertFalse($c->getCredentialsInRequestBody());
+        $this->assertEquals($data, $c->toArray());
+        $this->assertEquals(json_encode($data), $c->toJson());
+    }
+
+    public function testLessSimple()
+    {
         $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token", "redirect_uri" => "http://www.example.org/callback", "credentials_in_request_body" => TRUE);
         $c = Client::fromArray($data);
         $this->assertEquals("foo", $c->getClientId());

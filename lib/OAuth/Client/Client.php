@@ -148,7 +148,7 @@ class Client
 
     public function getRedirectUri()
     {
-        return $this->_data['redirect_uri'];
+        return isset($this->_data['redirect_uri']) ? $this->_data['redirect_uri'] : FALSE;
     }
 
     public function setCredentialsInRequestBody($c)
@@ -158,7 +158,7 @@ class Client
 
     public function getCredentialsInRequestBody()
     {
-        return $this->_data['credentials_in_request_body'];
+        return isset($this->_data['credentials_in_request_body']) ? $this->_data['credentials_in_request_body'] : FALSE;
     }
 
     public function toArray()
