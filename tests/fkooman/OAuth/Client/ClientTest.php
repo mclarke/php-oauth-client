@@ -1,9 +1,9 @@
 <?php
 
-require_once dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "lib" . DIRECTORY_SEPARATOR . "_autoload.php";
+require_once "vendor/autoload.php";
 
-use \OAuth\Client\Client as Client;
-use \OAuth\Client\ClientException as ClientException;
+use \fkooman\OAuth\Client\Client;
+use \fkooman\OAuth\Client\ClientException;
 
 class ClientTest extends PHPUnit_Framework_TestCase
 {

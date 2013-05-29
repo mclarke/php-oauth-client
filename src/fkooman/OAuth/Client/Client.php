@@ -1,6 +1,6 @@
 <?php
 
-namespace OAuth\Client;
+namespace fkooman\OAuth\Client;
 
 use \RestService\Utils\Json as Json;
 

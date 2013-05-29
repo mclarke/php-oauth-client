@@ -32,7 +32,7 @@ license for the exact details.
 
 To install the required dependencies run:
 
-    $ sh docs/install_dependencies.sh
+    $ composer install
 
 To set file permissions and setup the configuration file run:
 
@@ -84,17 +84,17 @@ Below is an example of how to use the API to access an OAuth 2.0 protected
 resource server:
 
     <?php
-    require_once "/PATH/TO/php-oauth-client/lib/_autoload.php";
+    require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
 
     try { 
-        $client = new \OAuth\Client\Api("SURFconext");
+        $client = new \fkooman\OAuth\Client\Api("SURFconext");
         $client->setUserId("foo");
         $client->setScope(array("read"));
         $client->setReturnUri("http://localhost/demo/index.php");
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
         echo $response->getContent();
-    } catch (\OAuth\Client\ApiException $e) {
+    } catch (\fkooman\OAuth\Client\ApiException $e) {
         die($e->getMessage());
     }
     ?>
@@ -164,7 +164,7 @@ The following is an example application for Google Drive to list your files:
     require_once '/PATH/TO/php-oauth-client/lib/_autoload.php';
 
     try {
-        $client = new \OAuth\Client\Api("drive");
+        $client = new \fkooman\OAuth\Client\Api("drive");
         $client->setUserId("foo");
         $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
@@ -178,7 +178,7 @@ The following is an example application for Google Drive to list your files:
             }
             echo "</ul>";
         }
-    } catch (\OAuth\Client\ApiException $e) {
+    } catch (\fkooman\OAuth\Client\ApiException $e) {
         echo $e->getMessage();
     }
     ?>

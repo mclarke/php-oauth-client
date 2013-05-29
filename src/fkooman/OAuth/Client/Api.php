@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OAuth\Client;
+namespace fkooman\OAuth\Client;
 
 use \RestService\Utils\Config as Config;
 use \RestService\Utils\Logger as Logger;

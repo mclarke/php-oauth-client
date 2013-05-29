@@ -15,21 +15,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . "lib" . DIRECTORY_SEPARATOR . "SplClassLoader.php";
+require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
 
-$c1 = new SplClassLoader("RestService", "../extlib/php-rest-service/lib");
-$c1->register();
-$c3 = new SplClassLoader("OAuth\\Client", "../lib");
-$c3->register();
+use \RestService\Http\HttpRequest;
+use \RestService\Http\HttpResponse;
+use \RestService\Http\IncomingHttpRequest;
+use \RestService\Utils\Config;
+use \RestService\Utils\Logger;
 
-use \RestService\Http\HttpRequest as HttpRequest;
-use \RestService\Http\HttpResponse as HttpResponse;
-use \RestService\Http\IncomingHttpRequest as IncomingHttpRequest;
-use \RestService\Utils\Config as Config;
-use \RestService\Utils\Logger as Logger;
-
-use \OAuth\Client\Callback as Callback;
-use \OAuth\Client\CallbackException as CallbackException;
+use \fkooman\OAuth\Client\Callback;
+use \fkooman\OAuth\Client\CallbackException;
 
 $logger = NULL;
 $request = NULL;

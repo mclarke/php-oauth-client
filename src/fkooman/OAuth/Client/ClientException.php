@@ -1,6 +1,6 @@
 <?php
 
-namespace OAuth\Client;
+namespace fkooman\OAuth\Client;
 
 class ClientException extends \Exception
 {
