@@ -42,7 +42,7 @@ class Api
     public function __construct($callbackId)
     {
         $this->_callbackId = $callbackId;
-        $this->_clientConfigFile = dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
+        $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
 
         $this->_userId = NULL;
         $this->_scope = NULL;
@@ -51,7 +51,7 @@ class Api
         $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
         $this->_returnUri = $request->getRequestUri()->getUri();
 
-        $this->_c = new Config(dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
+        $this->_c = new Config(dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
         $this->_logger = new Logger($this->_c->getSectionValue('Log', 'logLevel'), $this->_c->getValue('serviceName'), $this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logMail', FALSE));
 
         $this->_storage = new PdoStorage($this->_c);
