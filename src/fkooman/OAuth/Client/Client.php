@@ -2,7 +2,7 @@
 
 namespace fkooman\OAuth\Client;
 
-use \RestService\Utils\Json as Json;
+use \fkooman\Json\Json;
 
 class Client
 {

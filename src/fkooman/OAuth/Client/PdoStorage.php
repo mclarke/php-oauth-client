@@ -17,7 +17,7 @@
 
 namespace fkooman\OAuth\Client;
 
-use \RestService\Utils\Config as Config;
+use \RestService\Utils\Config;
 use \PDO as PDO;
 
 class PdoStorage

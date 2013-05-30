@@ -17,12 +17,12 @@
 
 namespace fkooman\OAuth\Client;
 
-use \RestService\Utils\Config as Config;
-use \RestService\Utils\Logger as Logger;
-use \RestService\Utils\Json as Json;
-use \RestService\Http\HttpRequest as HttpRequest;
-use \RestService\Http\HttpResponse as HttpResponse;
-use \RestService\Http\OutgoingHttpRequest as OutgoingHttpRequest;
+use \RestService\Utils\Config;
+use \RestService\Utils\Logger;
+use \fkooman\Json\Json;
+use \RestService\Http\HttpRequest;
+use \RestService\Http\HttpResponse;
+use \RestService\Http\OutgoingHttpRequest;
 
 class Callback
 {

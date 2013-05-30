@@ -1,8 +1,8 @@
 <?php
-require_once 'lib/_autoload.php';
+require_once 'vendor/autoload.php';
 
-use \RestService\Utils\Config as Config;
-use \OAuth\Client\PdoStorage as PdoStorage;
+use \RestService\Utils\Config;
+use \fkooman\OAuth\Client\PdoStorage;
 
 $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
 $storage = new PdoStorage($config);
