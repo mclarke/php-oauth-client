@@ -20,7 +20,6 @@ namespace fkooman\OAuth\Client;
 use \Monolog\Logger;
 use \Monolog\Handler\StreamHandler;
 use \RestService\Utils\Config;
-#use \fkooman\Json\Json;
 
 use Guzzle\Http\Client as GuzzleClient;
 use Guzzle\Log\PsrLogAdapter;
@@ -31,33 +30,30 @@ use Guzzle\Http\Exception\ClientErrorResponseException;
 
 use \RestService\Http\HttpRequest;
 use \RestService\Http\IncomingHttpRequest;
-use \RestService\Http\OutgoingHttpRequest;
 
 class Api
 {
-    private $_callbackId;
+
+    private $_data;
 
     private $_clientConfigFile;
-
-    private $_userId;
-    private $_scope;
-    private $_returnUri;
-
     private $_c;
     private $_logger;
     private $_storage;
 
     public function __construct($callbackId)
     {
-        $this->_callbackId = $callbackId;
-        $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
+        $this->_data = array();
+        $this->_data['callback_id'] = $callbackId;
+        $this->_data['user_id'] = NULL;
+        $this->_data['scope'] = NULL;
+        //$this->_data['return_uri'] = NULL;
 
-        $this->_userId = NULL;
-        $this->_scope = NULL;
+        $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
 
         // determine the URL from which this script was called...
         $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
-        $this->_returnUri = $request->getRequestUri()->getUri();
+        $this->_data['return_uri'] = $request->getRequestUri()->getUri();
 
         $this->_c = new Config(dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
 
@@ -73,62 +69,64 @@ class Api
             $scopePattern = '/^(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+$/';
             $result = preg_match($scopePattern, $s);
             if (1 !== $result) {
-                $msg = sprintf("set invalid scope value '%s' for config '%s'", $s, $this->_callbackId);
-                $this->_logger->addError($msg);
+                $msg = sprintf("invalid scope '%s'", $s);
+                $this->_logger->addError($msg, $this->_data);
                 throw new ApiException($msg);
             }
         }
         sort($scope, SORT_STRING);
-        $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
-        $this->_logger->addInfo(sprintf("scope set to '%s' for config '%s'", $this->_scope, $this->_callbackId));
+        $this->_data['scope'] = implode(" ", array_values(array_unique($scope, SORT_STRING)));
+        $this->_logger->addInfo("set scope", $this->_data);
     }
 
     public function setUserId($userId)
     {
-        $this->_userId = $userId;
-        $this->_logger->addInfo(sprintf("userId set to '%s' for config '%s'", $this->_userId, $this->_callbackId));
+        $this->_data['user_id'] = $userId;
+        $this->_logger->addInfo("set user_id", $this->_data);
     }
 
     public function setReturnUri($returnUri)
     {
-        $this->_returnUri = $returnUri;
-        $this->_logger->addInfo(sprintf("returnUri set to '%s' for config '%s'", $this->_returnUri, $this->_callbackId));
+        $this->_data['return_uri'] = $returnUri;
+        $this->_logger->addInfo("set return_uri", $this->_data);
     }
 
     public function getAccessToken()
     {
+        $this->_logger->addInfo("get access_token", $this->_data);
+
         // FIXME: deal with user giving less scope than requested
         // FIXME: rename this class to something nice
         // FIXME: do something with ApiException, rename it at least...
 
         // check if application is registered
-        $client = Client::fromConfig($this->_clientConfigFile, $this->_callbackId);
+        $client = Client::fromConfig($this->_clientConfigFile, $this->_data['callback_id']);
 
         // check if access token is actually available for this user, if
-        $token = $this->_storage->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
+        $token = $this->_storage->getAccessToken($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope']);
 
         if (!empty($token)) {
             if (NULL === $token['expires_in']) {
                 // no known expires_in, so assume token is valid
-                $this->_logger->addInfo("token found, no known expiry");
+                $this->_logger->addInfo("token found, no known expiry", $this->_data);
 
                 return $token['access_token'];
             }
             if ($token['issue_time'] + $token['expires_in'] > time()) {
                 // appears valid
-                $this->_logger->addInfo("token found, not expired yet");
+                $this->_logger->addInfo("token found, not expired yet", $this->_data);
 
                 return $token['access_token'];
             }
-            $this->_logger->addInfo("token found, but expired");
-            $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $token['access_token']);
+            $this->_logger->addInfo("token found, but expired", $this->_data);
+            $this->_storage->deleteAccessToken($this->_data['callback_id'], $this->_data['user_id'], $token['access_token']);
         }
 
-        $this->_logger->addInfo("no token, request a new one");
+        $this->_logger->addInfo("no token, request a new one", $this->_data);
         // do we have a refreshToken?
-        $token = $this->_storage->getRefreshToken($this->_callbackId, $this->_userId, $this->_scope);
+        $token = $this->_storage->getRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope']);
         if (!empty($token)) {
-            $this->_logger->addInfo("refresh token found, use it to request a new token");
+            $this->_logger->addInfo("refresh token found, use it to request a new token", $this->_data);
             // there is something here...
             // exchange it for an access_token
             // FIXME: do somthing with these ugly exceptions
@@ -165,52 +163,53 @@ class Api
                 $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
                 $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
 
-                $this->_storage->storeAccessToken($this->_callbackId, $this->_userId, $scope, $data['access_token'], time(), $expiresIn);
+                $this->_storage->storeAccessToken($this->_data['callback_id'], $this->_data['user_id'], $scope, $data['access_token'], time(), $expiresIn);
 
                 // did we get a new refresh_token?
                 if (array_key_exists("refresh_token", $data)) {
                     // we got a refresh_token, store this as well
                     // FIXME: maybe the delete the one we have now?
-                    $this->_storage->storeRefreshToken($this->_callbackId, $this->_userId, $scope, $data['refresh_token']);
+                    $this->_storage->storeRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $scope, $data['refresh_token']);
                 }
 
                 return $data['access_token'];
 
             } catch (ClientErrorResponseException $e) {
-                $this->_logger->addError($e->getRequest() . $e->getResponse());
-                $this->_storage->deleteRefreshToken($this->_callbackId, $this->_userId, $token['refresh_token']);
+                $this->_logger->addInfo("unable to use refresh_token", $this->_data);
+                $this->_storage->deleteRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $token['refresh_token']);
             } catch (ApiException $e) {
                 // remove the refresh_token, it didn't work so get rid of it, it might not be the fault of the refresh_token, but anyway...
                 // FIXME: this should only be for broken server responses, not for wrong refresh token or something
+                $this->_logger->addInfo("unable to use refresh_token (ApiException)", $this->_data);
 
-                $this->_storage->deleteRefreshToken($this->_callbackId, $this->_userId, $token['refresh_token']);
+                $this->_storage->deleteRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $token['refresh_token']);
 
                 //$this->_logger->logWarn("unable to fetch access token using refresh token, falling back to getting a new authorization code...");
                 // do nothing...
             }
         }
 
-        $this->_logger->addInfo("no token, no refresh token, request a new access token");
+        $this->_logger->addInfo("no token, no refresh token, request a new access token", $this->_data);
         // if there is no access_token and refresh_token failed, just ask for
         // authorization again
 
         // no access token obtained so far...
 
         // delete state if it exists
-        $this->_storage->deleteStateIfExists($this->_callbackId, $this->_userId);
+        $this->_storage->deleteStateIfExists($this->_data['callback_id'], $this->_data['user_id']);
 
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));
 
-        $this->_storage->storeState($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri, $state);
+        $this->_storage->storeState($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope'], $this->_data['return_uri'], $state);
 
         $q = array (
             "client_id" => $client->getClientId(),
             "response_type" => "code",
             "state" => $state,
         );
-        if (NULL !== $this->_scope) {
-            $q['scope'] = $this->_scope;
+        if (NULL !== $this->_data['scope']) {
+            $q['scope'] = $this->_data['scope'];
         }
         if ($client->getRedirectUri()) {
             $q['redirect_uri'] = $client->getRedirectUri();
@@ -219,7 +218,7 @@ class Api
         $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
         $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
 
-        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
+        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri), $this->_data);
 
         header("HTTP/1.1 302 Found");
         header("Location: " . $authorizeUri);
@@ -240,23 +239,36 @@ class Api
         for ($i = 0; $i < 2; $i++) {
             $accessToken = $this->getAccessToken();
 
-            $request = new HttpRequest($requestUri, $requestMethod);
-            $request->setHeaders($requestHeaders);
+            $c = new GuzzleClient();
+            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEFAULT_FORMAT);
+            $c->addSubscriber($logPlugin);
+
+            $request = $c->createRequest($requestMethod, $requestUri);
+
+            foreach ($requestHeaders as $k => $v) {
+                $request->setHeader($k, $v);
+            }
+
             // if Authorization header already exists, it is overwritten here...
             $request->setHeader("Authorization", "Bearer " . $accessToken);
 
             if ("POST" === $requestMethod) {
-                $request->setPostParameters($postParameters);
+                $request->addPostFields($postParameters);
             }
 
-            //$this->_logger->logDebug($request);
-            $response = OutgoingHttpRequest::makeRequest($request);
-            //$this->_logger->logDebug($response);
+            try {
+                $response = $request->send();
 
-            if (401 === $response->getStatusCode()) {
+                return $response;
+            } catch (ClientErrorResponseException $e) {
+                if (401 === $e->getResponse()->getStatusCode()) {
                 // FIXME: check whether error WWW-Authenticate type is "invalid_token", only then it makes sense to try again
-                $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $accessToken);
-                continue;
+                    $this->_storage->deleteAccessToken($this->_data['callback_id'], $this->_data['user_id'], $accessToken);
+                    continue;
+                } else {
+                    // throw it again
+                    throw $e;
+                }
             }
 
             return $response;
