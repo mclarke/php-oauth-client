@@ -17,12 +17,16 @@
 
 namespace fkooman\OAuth\Client;
 
-use \RestService\Utils\Config;
-use \RestService\Utils\Logger;
-use \fkooman\Json\Json;
-use \RestService\Http\HttpRequest;
-use \RestService\Http\HttpResponse;
-use \RestService\Http\OutgoingHttpRequest;
+use fkooman\Json\Json;
+use RestService\Http\HttpRequest;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+use RestService\Utils\Config;
+use Guzzle\Http\Client as GuzzleClient;
+use Guzzle\Log\PsrLogAdapter;
+use Guzzle\Plugin\Log\LogPlugin;
+use Guzzle\Log\MessageFormatter;
+use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
 
 class Callback
 {
@@ -33,13 +37,16 @@ class Callback
     private $_clientConfigFile;
 
     private $_storage;
+    private $_logger;
 
-    public function __construct(Config $c, Logger $l)
+    public function __construct(Config $c)
     {
         $this->_c = $c;
-        $this->_l = $l;
 
         $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
+
+        $this->_logger = new Logger($this->_c->getValue('serviceName'));
+        $this->_logger->pushHandler(new StreamHandler($this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logLevel')));
 
         $this->_storage = new PdoStorage($c);
     }
@@ -83,30 +90,21 @@ class Callback
             if ($client->getRedirectUri()) {
                 $p['redirect_uri'] = $client->getRedirectUri();
             }
-            $h = new HttpRequest($client->getTokenEndpoint(), "POST");
 
-            // deal with specification violation of Google (https://tools.ietf.org/html/rfc6749#section-2.3.1)
+            $c = new GuzzleClient();
+
+            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEBUG_FORMAT);
+            $c->addSubscriber($logPlugin);
+
             if ($client->getCredentialsInRequestBody()) {
                 $p['client_id'] = $client->getClientId();
                 $p['client_secret'] = $client->getClientSecret();
             } else {
-                $h->setBasicAuthUser($client->getClientId());
-                $h->setBasicAuthPass($client->getClientSecret());
+                // use basic authentication
+                $c->addSubscriber(new CurlAuthPlugin($client->getClientId(), $client->getClientSecret()));
             }
-
-            $h->setPostParameters($p);
-
-            $this->_l->logDebug($h);
-
-            $response = OutgoingHttpRequest::makeRequest($h);
-
-            $this->_l->logDebug($response);
-
-            if (200 !== $response->getStatusCode()) {
-                throw new CallbackException("unable to retrieve access token using authorization code");
-            }
-
-            $data = Json::dec($response->getContent());
+            $response = $c->post($client->getTokenEndpoint())->addPostFields($p)->send();
+            $data = $response->json();
             if (!is_array($data)) {
                 throw new CallbackException("unable to decode access token response");
             }
@@ -127,10 +125,11 @@ class Callback
                 $this->_storage->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
             }
 
-            $httpResponse = new HttpResponse(302);
-            $httpResponse->setHeader("Location", $state['return_uri']);
-
-            return $httpResponse;
+            header("HTTP/1.1 302 Found");
+            header("Location: " . $state['return_uri']);
+            // FIXME: should return a response instead of NULL?!
+            // will integrate with REST framework I guess...
+            exit;
         }
 
         if (NULL !== $qError) {

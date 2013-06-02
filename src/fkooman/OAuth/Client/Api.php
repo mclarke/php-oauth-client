@@ -17,10 +17,18 @@
 
 namespace fkooman\OAuth\Client;
 
+use \Monolog\Logger;
+use \Monolog\Handler\StreamHandler;
 use \RestService\Utils\Config;
-use \RestService\Utils\Logger;
-use \fkooman\Json\Json;
-use \RestService\Http\HttpResponse;
+#use \fkooman\Json\Json;
+
+use Guzzle\Http\Client as GuzzleClient;
+use Guzzle\Log\PsrLogAdapter;
+use Guzzle\Plugin\Log\LogPlugin;
+use Guzzle\Log\MessageFormatter;
+use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
+use Guzzle\Http\Exception\ClientErrorResponseException;
+
 use \RestService\Http\HttpRequest;
 use \RestService\Http\IncomingHttpRequest;
 use \RestService\Http\OutgoingHttpRequest;
@@ -52,7 +60,9 @@ class Api
         $this->_returnUri = $request->getRequestUri()->getUri();
 
         $this->_c = new Config(dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
-        $this->_logger = new Logger($this->_c->getSectionValue('Log', 'logLevel'), $this->_c->getValue('serviceName'), $this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logMail', FALSE));
+
+        $this->_logger = new Logger($this->_c->getValue('serviceName'));
+        $this->_logger->pushHandler(new StreamHandler($this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logLevel')));
 
         $this->_storage = new PdoStorage($this->_c);
     }
@@ -63,21 +73,26 @@ class Api
             $scopePattern = '/^(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+$/';
             $result = preg_match($scopePattern, $s);
             if (1 !== $result) {
-               throw new ApiException("invalid scope value: " . $s);
+                $msg = sprintf("set invalid scope value '%s' for config '%s'", $s, $this->_callbackId);
+                $this->_logger->addError($msg);
+                throw new ApiException($msg);
             }
         }
         sort($scope, SORT_STRING);
         $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
+        $this->_logger->addInfo(sprintf("scope set to '%s' for config '%s'", $this->_scope, $this->_callbackId));
     }
 
     public function setUserId($userId)
     {
         $this->_userId = $userId;
+        $this->_logger->addInfo(sprintf("userId set to '%s' for config '%s'", $this->_userId, $this->_callbackId));
     }
 
     public function setReturnUri($returnUri)
     {
         $this->_returnUri = $returnUri;
+        $this->_logger->addInfo(sprintf("returnUri set to '%s' for config '%s'", $this->_returnUri, $this->_callbackId));
     }
 
     public function getAccessToken()
@@ -95,18 +110,25 @@ class Api
         if (!empty($token)) {
             if (NULL === $token['expires_in']) {
                 // no known expires_in, so assume token is valid
+                $this->_logger->addInfo("token found, no known expiry");
+
                 return $token['access_token'];
             }
             if ($token['issue_time'] + $token['expires_in'] > time()) {
                 // appears valid
+                $this->_logger->addInfo("token found, not expired yet");
+
                 return $token['access_token'];
             }
+            $this->_logger->addInfo("token found, but expired");
             $this->_storage->deleteAccessToken($this->_callbackId, $this->_userId, $token['access_token']);
         }
 
+        $this->_logger->addInfo("no token, request a new one");
         // do we have a refreshToken?
         $token = $this->_storage->getRefreshToken($this->_callbackId, $this->_userId, $this->_scope);
         if (!empty($token)) {
+            $this->_logger->addInfo("refresh token found, use it to request a new token");
             // there is something here...
             // exchange it for an access_token
             // FIXME: do somthing with these ugly exceptions
@@ -116,29 +138,20 @@ class Api
                     "grant_type" => "refresh_token"
                 );
 
-                $h = new HttpRequest($client->getTokenEndpoint(), "POST");
+                $c = new GuzzleClient();
 
-                // deal with specification violation of Google (https://tools.ietf.org/html/rfc6749#section-2.3.1)
+                $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEFAULT_FORMAT);
+                $c->addSubscriber($logPlugin);
+
                 if ($client->getCredentialsInRequestBody()) {
                     $p['client_id'] = $client->getClientId();
                     $p['client_secret'] = $client->getClientSecret();
                 } else {
-                    $h->setBasicAuthUser($client->getClientId());
-                    $h->setBasicAuthUser($client->getClientSecret());
+                    // use basic authentication
+                    $c->addSubscriber(new CurlAuthPlugin($client->getClientId(), $client->getClientSecret()));
                 }
-                $h->setPostParameters($p);
-
-                $this->_logger->logDebug($h);
-
-                $response = OutgoingHttpRequest::makeRequest($h);
-
-                $this->_logger->logDebug($response);
-
-                if (200 !== $response->getStatusCode()) {
-                    throw new ApiException("unable to retrieve access token using refresh token");
-                }
-
-                $data = Json::dec($response->getContent());
+                $response = $c->post($client->getTokenEndpoint())->addPostFields($p)->send();
+                $data = $response->json();
                 if (!is_array($data)) {
                     throw new ApiException("unable to decode access token response");
                 }
@@ -157,20 +170,27 @@ class Api
                 // did we get a new refresh_token?
                 if (array_key_exists("refresh_token", $data)) {
                     // we got a refresh_token, store this as well
+                    // FIXME: maybe the delete the one we have now?
                     $this->_storage->storeRefreshToken($this->_callbackId, $this->_userId, $scope, $data['refresh_token']);
                 }
 
                 return $data['access_token'];
 
+            } catch (ClientErrorResponseException $e) {
+                $this->_logger->addError($e->getRequest() . $e->getResponse());
+                $this->_storage->deleteRefreshToken($this->_callbackId, $this->_userId, $token['refresh_token']);
             } catch (ApiException $e) {
                 // remove the refresh_token, it didn't work so get rid of it, it might not be the fault of the refresh_token, but anyway...
+                // FIXME: this should only be for broken server responses, not for wrong refresh token or something
+
                 $this->_storage->deleteRefreshToken($this->_callbackId, $this->_userId, $token['refresh_token']);
 
-                $this->_logger->logWarn("unable to fetch access token using refresh token, falling back to getting a new authorization code...");
+                //$this->_logger->logWarn("unable to fetch access token using refresh token, falling back to getting a new authorization code...");
                 // do nothing...
             }
         }
 
+        $this->_logger->addInfo("no token, no refresh token, request a new access token");
         // if there is no access_token and refresh_token failed, just ask for
         // authorization again
 
@@ -199,28 +219,11 @@ class Api
         $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
         $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
 
-        if ($client->getEnableDebug()) {
-            // show the request details and allow the user to submit it instead
-            // of automatically submitting it
-            $tplData = array(
-                "authorizeUri" => $client->getAuthorizeEndpoint(),
-                "authorizeUriQuery" => $authorizeUri,
-                "queryParameters" => $q,
-            );
-            extract($tplData);
-            $_e = function($m) {
-                return htmlentities($m, ENT_QUOTES, "UTF-8");
-            };
-            ob_start();
-            require dirname(dirname(dirname(__DIR__))) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "debugAuthorizeRequest.php";
-            echo ob_get_clean();
-            exit;
-        } else {
-            $httpResponse = new HttpResponse(302);
-            $httpResponse->setHeader("Location", $authorizeUri);
-            $httpResponse->sendResponse();
-            exit;
-        }
+        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
+
+        header("HTTP/1.1 302 Found");
+        header("Location: " . $authorizeUri);
+        exit;
     }
 
     public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
@@ -246,9 +249,9 @@ class Api
                 $request->setPostParameters($postParameters);
             }
 
-            $this->_logger->logDebug($request);
+            //$this->_logger->logDebug($request);
             $response = OutgoingHttpRequest::makeRequest($request);
-            $this->_logger->logDebug($response);
+            //$this->_logger->logDebug($response);
 
             if (401 === $response->getStatusCode()) {
                 // FIXME: check whether error WWW-Authenticate type is "invalid_token", only then it makes sense to try again

@@ -21,7 +21,7 @@ use \RestService\Http\HttpRequest;
 use \RestService\Http\HttpResponse;
 use \RestService\Http\IncomingHttpRequest;
 use \RestService\Utils\Config;
-use \RestService\Utils\Logger;
+//use \RestService\Utils\Logger;
 
 use \fkooman\OAuth\Client\Callback;
 use \fkooman\OAuth\Client\CallbackException;
@@ -32,9 +32,9 @@ $response = NULL;
 
 try {
     $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
-    $logger = new Logger($config->getSectionValue('Log', 'logLevel'), $config->getValue('serviceName'), $config->getSectionValue('Log', 'logFile'), $config->getSectionValue('Log', 'logMail', FALSE));
+//    $logger = new Logger($config->getSectionValue('Log', 'logLevel'), $config->getValue('serviceName'), $config->getSectionValue('Log', 'logFile'), $config->getSectionValue('Log', 'logMail', FALSE));
 
-    $service = new Callback($config, $logger);
+    $service = new Callback($config);
 
     $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
     $response = $service->handleRequest($request);
@@ -43,22 +43,22 @@ try {
     ob_start();
     require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
     $response->setContent(ob_get_clean());
-    if (NULL !== $logger) {
-        $logger->logWarn($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
-    }
+//    if (NULL !== $logger) {
+//        $logger->logWarn($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
+//    }
 } catch (Exception $e) {
     $response = new HttpResponse(500);
     ob_start();
     require dirname(__DIR__) . DIRECTORY_SEPARATOR . "templates" . DIRECTORY_SEPARATOR . "errorPage.php";
     $response->setContent(ob_get_clean());
-    if (NULL !== $logger) {
-        $logger->logFatal($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
-    }
+//    if (NULL !== $logger) {
+//        $logger->logFatal($e->getMessage() . PHP_EOL . $request . PHP_EOL . $response);
+//    }
 }
 
-if (NULL !== $logger) {
-    $logger->logDebug($request);
-}
+//if (NULL !== $logger) {
+//    $logger->logDebug($request);
+//}
 if (NULL !== $logger) {
     $logger->logDebug($response);
 }
