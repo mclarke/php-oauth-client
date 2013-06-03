@@ -23,7 +23,7 @@ use \Symfony\Component\HttpFoundation\Request;
 
 $app = new Silex\Application();
 $app['debug'] = true;
-$app->get('/callback', function(Request $request) use ($app) {
+$app->get('/', function(Request $request) use ($app) {
     //echo $request;
     $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
     $service = new Callback($config);
