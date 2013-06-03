@@ -18,7 +18,6 @@
 namespace fkooman\OAuth\Client;
 
 use fkooman\Json\Json;
-use RestService\Http\HttpRequest;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use RestService\Utils\Config;
@@ -27,6 +26,7 @@ use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
 use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
+use Symfony\Component\HttpFoundation\Request;
 
 class Callback
 {
@@ -51,10 +51,9 @@ class Callback
         $this->_storage = new PdoStorage($c);
     }
 
-    //public function handleRequest($callbackId, HttpRequest $r)
-    public function handleRequest(HttpRequest $r)
+    public function handleCallback(Request $r)
     {
-        $callbackId = $r->getQueryParameter("id");
+        $callbackId = $r->get('id');
         if (NULL === $callbackId) {
             throw new CallbackException("no callback id specified");
         }
@@ -62,9 +61,9 @@ class Callback
         // check if application is registered
         $client = Client::fromConfig($this->_clientConfigFile, $callbackId);
 
-        $qState = $r->getQueryParameter("state");
-        $qCode = $r->getQueryParameter("code");
-        $qError = $r->getQueryParameter("error");
+        $qState = $r->get('state');
+        $qCode = $r->get('code');
+        $qError = $r->get('error');
 
         if (NULL === $qState) {
             throw new CallbackException("invalid state (missing)");
@@ -125,11 +124,7 @@ class Callback
                 $this->_storage->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
             }
 
-            header("HTTP/1.1 302 Found");
-            header("Location: " . $state['return_uri']);
-            // FIXME: should return a response instead of NULL?!
-            // will integrate with REST framework I guess...
-            exit;
+            return $state['return_uri'];
         }
 
         if (NULL !== $qError) {
@@ -140,7 +135,7 @@ class Callback
             // Probably store the error in the DB and let the client api
             // handle it...maybe continue without access if the app would still
             // work or try again, or whatever...
-            throw new CallbackException($qError . ": " . $r->getQueryParameter("error_description"));
+            throw new CallbackException($qError . ": " . $r->get('error_description'));
         }
 
         // nothing left here...
