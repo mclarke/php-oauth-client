@@ -36,11 +36,11 @@ To install the required dependencies run:
 
 To set file permissions and setup the configuration file run:
 
-    $ sh docs/configure.sh
+    $ sh bin/configure.sh
 
 To initialize the database run:
 
-    $ php docs/initDatabase.php
+    $ php bin/initDatabase.php
 
 # Apache Configuration
 The `configure.sh` script displays an example Apache configuration file, you 
