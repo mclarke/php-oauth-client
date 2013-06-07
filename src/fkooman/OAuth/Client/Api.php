@@ -17,10 +17,8 @@
 
 namespace fkooman\OAuth\Client;
 
-use \Monolog\Logger;
-use \Monolog\Handler\StreamHandler;
-use \RestService\Utils\Config;
-
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 use Guzzle\Http\Client as GuzzleClient;
 use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
@@ -28,15 +26,13 @@ use Guzzle\Log\MessageFormatter;
 use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
 use Guzzle\Http\Exception\ClientErrorResponseException;
 
-use \RestService\Http\HttpRequest;
-use \RestService\Http\IncomingHttpRequest;
+use fkooman\Config\Config;
+use RestService\Http\HttpRequest;
+use RestService\Http\IncomingHttpRequest;
 
 class Api
 {
-
     private $_data;
-
-    private $_clientConfigFile;
     private $_c;
     private $_logger;
     private $_storage;
@@ -47,20 +43,18 @@ class Api
         $this->_data['callback_id'] = $callbackId;
         $this->_data['user_id'] = NULL;
         $this->_data['scope'] = NULL;
-        //$this->_data['return_uri'] = NULL;
 
-        $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
+        $configFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
+        $this->_c = Config::fromYamlFile($configFile);
 
         // determine the URL from which this script was called...
         $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
         $this->_data['return_uri'] = $request->getRequestUri()->getUri();
 
-        $this->_c = new Config(dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
+        $this->_logger = new Logger($this->_c->getValue('name', FALSE, 'php-oauth-client'));
+        $this->_logger->pushHandler(new StreamHandler($this->_c->getSection('log')->getValue('file', false, NULL), $this->_c->getSection('log')->getValue('level', false, 400)));
 
-        $this->_logger = new Logger($this->_c->getValue('serviceName'));
-        $this->_logger->pushHandler(new StreamHandler($this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logLevel')));
-
-        $this->_storage = new PdoStorage($this->_c);
+        $this->_storage = new PdoStorage($this->_c->getSection('storage'));
     }
 
     public function setScope(array $scope)
@@ -100,7 +94,7 @@ class Api
         // FIXME: do something with ApiException, rename it at least...
 
         // check if application is registered
-        $client = Client::fromConfig($this->_clientConfigFile, $this->_data['callback_id']);
+        $client = Client::fromArray($this->_c->getSection('registration')->getSection($this->_data['callback_id'])->toArray());
 
         // check if access token is actually available for this user, if
         $token = $this->_storage->getAccessToken($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope']);

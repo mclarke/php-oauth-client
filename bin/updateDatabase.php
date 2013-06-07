@@ -2,11 +2,11 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use \RestService\Utils\Config;
-use \fkooman\OAuth\Client\PdoStorage;
+use fkooman\Config\Config;
+use fkooman\OAuth\Client\PdoStorage;
 
-$config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
-$storage = new PdoStorage($config);
+$config = Config::fromYamlFile(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml");
+$storage = new PdoStorage($config->getSection("storage"));
 
 $d = $storage->getChangeInfo();
 $patchLevel = FALSE === $d ? 0 : $d['patch_number'];

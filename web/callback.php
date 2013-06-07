@@ -17,20 +17,26 @@
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-use \RestService\Utils\Config;
-use \fkooman\OAuth\Client\Callback;
-use \Symfony\Component\HttpFoundation\Request;
+use fkooman\Config\Config;
+use fkooman\OAuth\Client\Callback;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 $app = new Silex\Application();
 $app['debug'] = true;
 $app->get('/', function(Request $request) use ($app) {
-    //echo $request;
-    $config = new Config(dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.ini");
+
+    $configFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
+    $config = Config::fromYamlFile($configFile);
     $service = new Callback($config);
 
     $returnUri = $service->handleCallback($request);
 
     return $app->redirect($returnUri);
 });
+
+//$app->error(function(\fkooman\OAuth\Client\CallbackException $e, $code) use ($app) {
+//    return new Response($e->getMessage());
+//});
 
 $app->run();

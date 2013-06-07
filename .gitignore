@@ -1,4 +1,3 @@
-/config/*.ini
-/config/*.json
-/data/
-/vendor/
+/config/*.yaml
+/data
+/vendor

@@ -20,8 +20,7 @@ namespace fkooman\OAuth\Client;
 use fkooman\Json\Json;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
-use RestService\Utils\Config;
-use Guzzle\Http\Client as GuzzleClient;
+use fkooman\Config\Config;
 use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
@@ -32,23 +31,17 @@ class Callback
 {
 
     private $_c;
-    private $_l;
-
-    private $_clientConfigFile;
-
-    private $_storage;
     private $_logger;
+    private $_storage;
 
-    public function __construct(Config $c)
+    public function __construct(Config $config)
     {
-        $this->_c = $c;
+        $this->_c = $config;
 
-        $this->_clientConfigFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "clientConfig.json";
+        $this->_logger = new Logger($this->_c->getValue('name'));
+        $this->_logger->pushHandler(new StreamHandler($this->_c->getSection('log')->getValue('file', false, NULL), $this->_c->getSection('log')->getValue('level', false, 400)));
 
-        $this->_logger = new Logger($this->_c->getValue('serviceName'));
-        $this->_logger->pushHandler(new StreamHandler($this->_c->getSectionValue('Log', 'logFile'), $this->_c->getSectionValue('Log', 'logLevel')));
-
-        $this->_storage = new PdoStorage($c);
+        $this->_storage = new PdoStorage($this->_c->getSection("storage"));
     }
 
     public function handleCallback(Request $r)
@@ -59,7 +52,7 @@ class Callback
         }
 
         // check if application is registered
-        $client = Client::fromConfig($this->_clientConfigFile, $callbackId);
+        $client = Client::fromArray($this->_c->getSection('registration')->getSection($callbackId)->toArray());
 
         $qState = $r->get('state');
         $qCode = $r->get('code');
@@ -90,7 +83,7 @@ class Callback
                 $p['redirect_uri'] = $client->getRedirectUri();
             }
 
-            $c = new GuzzleClient();
+            $c = new \Guzzle\Http\Client();
 
             $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEBUG_FORMAT);
             $c->addSubscriber($logPlugin);

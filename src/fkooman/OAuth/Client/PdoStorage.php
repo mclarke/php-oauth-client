@@ -17,8 +17,8 @@
 
 namespace fkooman\OAuth\Client;
 
-use \RestService\Utils\Config;
-use \PDO as PDO;
+use fkooman\Config\Config;
+use PDO as PDO;
 
 class PdoStorage
 {
@@ -30,14 +30,14 @@ class PdoStorage
         $this->_c = $c;
 
         $driverOptions = array();
-        if ($this->_c->getSectionValue('PdoStorage', 'persistentConnection')) {
+        if ($this->_c->getValue('persistentConnection', false, false)) {
             $driverOptions = array(PDO::ATTR_PERSISTENT => TRUE);
         }
 
-        $this->_pdo = new PDO($this->_c->getSectionValue('PdoStorage', 'dsn'), $this->_c->getSectionValue('PdoStorage', 'username', FALSE), $this->_c->getSectionValue('PdoStorage', 'password', FALSE), $driverOptions);
+        $this->_pdo = new PDO($this->_c->getValue('dsn', TRUE), $this->_c->getValue('username', FALSE), $this->_c->getValue('password', FALSE), $driverOptions);
         $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        if (0 === strpos($this->_c->getSectionValue('PdoStorage', 'dsn'), "sqlite:")) {
+        if (0 === strpos($this->_c->getValue('dsn'), "sqlite:")) {
             // only for SQlite
             $this->_pdo->exec("PRAGMA foreign_keys = ON");
         }

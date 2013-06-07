@@ -50,26 +50,25 @@ can put the contents that are displayed on your screen in
 restart Apache.
 
 # Configuration
-Registering a client is very easy. One constructs a file with a JSON formatted
-configuration entry. Example:
+Configuring the OAuth client is very easy. One modifies the `config.yaml` file 
+in the `config` directory. You can add clients here under the `registration`
+section. By default some entries are available, you still need to set the
+`client_id` and `client_secret` for those if you want to use them. Or you 
+can add your own. The example here is SURFconext:
 
-    {
-        "SURFconext": {
-            "authorize_endpoint": "https://api.surfconext.nl/v1/oauth2/authorize", 
-            "client_id": "REPLACE_ME_WITH_CLIENT_ID", 
-            "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET", 
-            "token_endpoint": "https://api.surfconext.nl/v1/oauth2/token"
-        }
-    }
+    SURFconext:
+        authorize_endpoint : 'https://api.surfconext.nl/v1/oauth2/authorize'
+        client_id          : REPLACE_ME_WITH_CLIENT_ID
+        client_secret      : REPLACE_ME_WITH_CLIENT_SECRET
+        token_endpoint     : 'https://api.surfconext.nl/v1/oauth2/token'
+        
+Here, the `callbackId`, the parameter you provide the constructor with (see 
+below), is `SURFconext`. The options under this `SURFconext` section are the 
+parameters for the registration.
 
-Now you can put this in a file in the `config` directory with the name 
-`clientConfig.json`. Replace the `client_id` and `client_secret` with the 
-values you obtained during client registration.
-
-The `callbackId` here is `SURFconext`, but can be anything describing the 
-client, or what the client is used for. This `callbackId` is part of the 
-redirect URI you need to provide during registration. Assuming you installed 
-the client at `http://localhost/php-oauth-client`, the redirect URI will be:
+This `callbackId` is part of the redirect URI you need to provide during 
+registration. Assuming you installed the client at 
+`http://localhost/php-oauth-client`, the redirect URI will be:
 
     http://localhost/php-oauth-client/callback.php?id=SURFconext
 
@@ -125,9 +124,9 @@ the `setReturnUri` method as well, but usually this will not be necessary.
 
 # Logging and Debugging
 The client has extensive logging functionality available. You can configure the
-log level in `config/config.ini`. The log is by default written to the 
+log level in `config/config.yaml`. The log is by default written to the 
 `data/logs` directory. If you want to log every possible request you can set the
-following in the configuration file: `logLevel = 100`.
+following in the configuration file: `level = 100`.
 
 # Google API
 In order to be able to access the Google APIs using this client, you need to
@@ -135,18 +134,16 @@ specify two extra fields, `credentials_in_request_body`, and set it to `true`
 because Google [violates](https://tools.ietf.org/html/rfc6749#section-2.3.1) 
 the OAuth specification by not accepting HTTP Basic authentication on the 
 token endpoint. The other field is `redirect_uri` as it is not sufficient to
-specify this during the registration process at Google.
+specify this during the registration process at Google, you also need to 
+explicitly provide it during the authorization code request.
 
-    {
-        "drive": {
-            "authorize_endpoint": "https://accounts.google.com/o/oauth2/auth",
-            "client_id": "REPLACE_ME_WITH_CLIENT_ID",
-            "client_secret": "REPLACE_ME_WITH_CLIENT_SECRET",
-            "credentials_in_request_body": true,
-            "redirect_uri": "http://localhost/php-oauth-client/callback.php?id=drive",
-            "token_endpoint": "https://accounts.google.com/o/oauth2/token"
-        }
-    }
+   drive:
+        authorize_endpoint          : 'https://accounts.google.com/o/oauth2/auth'
+        client_id                   : REPLACE_ME_WITH_CLIENT_ID
+        client_secret               : REPLACE_ME_WITH_CLIENT_SECRET
+        credentials_in_request_body : true
+        redirect_uri                : 'http://localhost/php-oauth-client/callback.php?id=drive'
+        token_endpoint              : 'https://accounts.google.com/o/oauth2/token'
 
 The credentials can be obtained from Google's API console which can be found
 [here](https://code.google.com/apis/console/).
