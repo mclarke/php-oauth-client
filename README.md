@@ -137,7 +137,7 @@ token endpoint. The other field is `redirect_uri` as it is not sufficient to
 specify this during the registration process at Google, you also need to 
 explicitly provide it during the authorization code request.
 
-   drive:
+    drive:
         authorize_endpoint          : 'https://accounts.google.com/o/oauth2/auth'
         client_id                   : REPLACE_ME_WITH_CLIENT_ID
         client_secret               : REPLACE_ME_WITH_CLIENT_SECRET
