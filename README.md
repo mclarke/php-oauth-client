@@ -158,7 +158,7 @@ The following is an example application for Google Drive to list your files:
     <h1>Google Drive File List</h1>
     <p>This demonstration lists the files on your Google Drive.</p>
     <?php
-    require_once '/PATH/TO/php-oauth-client/lib/_autoload.php';
+    require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
 
     try {
         $client = new \fkooman\OAuth\Client\Api("drive");
