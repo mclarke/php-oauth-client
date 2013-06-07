@@ -135,7 +135,7 @@ because Google [violates](https://tools.ietf.org/html/rfc6749#section-2.3.1)
 the OAuth specification by not accepting HTTP Basic authentication on the 
 token endpoint. The other field is `redirect_uri` as it is not sufficient to
 specify this during the registration process at Google, you also need to 
-explicitly provide it during the authorization code request.
+explicitly provide it during the authorization code request:
 
     drive:
         authorize_endpoint          : 'https://accounts.google.com/o/oauth2/auth'
