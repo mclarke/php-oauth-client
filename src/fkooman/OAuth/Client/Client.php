@@ -111,9 +111,6 @@ class Client
         if (1 !== preg_match(self::REGEXP_VSCHAR, $s)) {
             throw new ClientException("invalid character(s) in client_id or client_secret");
         }
-        if (FALSE !== strpos($s, ":")) {
-            throw new ClientException("client_id and/or client_secret cannot contain colon ':'");
-        }
 
         return $s;
     }

@@ -139,6 +139,7 @@ class Api
                     $p['client_id'] = $client->getClientId();
                     $p['client_secret'] = $client->getClientSecret();
                 } else {
+                    // FIXME: you have to be careful to not use ':' in the client_id/client_secret
                     // use basic authentication
                     $c->addSubscriber(new CurlAuthPlugin($client->getClientId(), $client->getClientSecret()));
                 }
