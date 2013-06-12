@@ -197,7 +197,7 @@ class Api
         }
 
         $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
-        $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
+        $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q, null, "&");
 
         if ($client->getEnableDebug()) {
             // show the request details and allow the user to submit it instead
