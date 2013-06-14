@@ -22,6 +22,8 @@ use fkooman\OAuth\Client\Callback;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+// FIXME: use (or just Silex's DI stuff to feed Callback)
+
 $app = new Silex\Application();
 
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
@@ -33,6 +35,7 @@ $app->get('/', function(Request $request) use ($app) {
     $config = Config::fromYamlFile($configFile);
     $service = new Callback($config);
     $returnUri = $service->handleCallback($request);
+
     return $app->redirect($returnUri);
 });
 
@@ -40,7 +43,7 @@ $app->error(function(\fkooman\OAuth\Client\CallbackException $e, $code) use ($ap
     return $app['twig']->render('error.twig', array(
         'message' => $e->getMessage(),
     ));
-    
+
     // FIXME: also log this!
     // FIXME: also handle other types of errors
     // FIXME: also handle errorexceptions
