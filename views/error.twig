@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="HandheldFriendly" content="true">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Error</title>
+  <style>
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background-color: #eee;
+    }
+
+    div#wrapper {
+        max-width: 480px;
+        margin: 2em auto;
+    }
+
+    div#container {
+        max-width: 410px;
+        background: #fff;
+        border-radius: 10px;
+        margin: 0 10px;
+        padding: 10px 15px 15px 25px;
+        box-shadow:         0 0 3px 0 #8c8c8c;
+    }
+
+    div.errorBox {
+        border: 1px solid #888;
+        background-color: #f3a4a4;
+        color: black;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 85%;
+        border-radius: 5px;
+        background-color: #f3a4a4;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="container">
+      <h3>Error</h3>
+      <div class="errorBox">
+        <strong>{{message}}</strong>
+      </div>
+    </div><!-- /container -->
+  </div><!-- /wrapper -->
+</body>
+</html>
