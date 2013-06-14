@@ -43,8 +43,9 @@
   <div id="wrapper">
     <div id="container">
       <h3>Error</h3>
+      <p><strong>{{ code|e }}</strong></p>
       <div class="errorBox">
-        <strong>{{message}}</strong>
+        <p>{{ message|e }}</p>
       </div>
     </div><!-- /container -->
   </div><!-- /wrapper -->

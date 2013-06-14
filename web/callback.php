@@ -19,8 +19,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use fkooman\Config\Config;
 use fkooman\OAuth\Client\Callback;
+use fkooman\OAuth\Client\PdoStorage;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 // FIXME: use (or just Silex's DI stuff to feed Callback)
 
@@ -29,25 +32,37 @@ $app = new Silex\Application();
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
     'twig.path' => __DIR__.'/../views',
 ));
+$app['config'] = function() {
+    $configFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
+
+    return Config::fromYamlFile($configFile);
+};
+$app['storage'] = function($c) {
+    return new PdoStorage($c['config']->getSection("storage"));
+};
+$app['log'] = function($c) {
+    $l = new Logger($c['config']->getValue('name'));
+    $l->pushHandler(new StreamHandler($c['config']->getSection('log')->getValue('file', false, NULL), $c['config']->getSection('log')->getValue('level', false, 400)));
+
+    return $l;
+};
 
 $app->get('/', function(Request $request) use ($app) {
-    $configFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
-    $config = Config::fromYamlFile($configFile);
-    $service = new Callback($config);
+    $service = new Callback($app);
     $returnUri = $service->handleCallback($request);
 
     return $app->redirect($returnUri);
 });
 
-$app->error(function(\fkooman\OAuth\Client\CallbackException $e, $code) use ($app) {
+$app->error(function(\Exception $e, $code) use ($app) {
+    // FIXME: LOGGING
+});
+
+$app->error(function(\Exception $e, $code) use ($app) {
     return $app['twig']->render('error.twig', array(
+        'code' => $code,
         'message' => $e->getMessage(),
     ));
-
-    // FIXME: also log this!
-    // FIXME: also handle other types of errors
-    // FIXME: also handle errorexceptions
-    return new Response($e->getMessage() . $code, 400);
 });
 
 $app->run();

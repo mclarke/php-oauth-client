@@ -18,60 +18,52 @@
 namespace fkooman\OAuth\Client;
 
 use fkooman\Json\Json;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 use fkooman\Config\Config;
 use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
 use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
+
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpFoundation\Request;
 
 class Callback
 {
+    private $_p;
 
-    private $_c;
-    private $_logger;
-    private $_storage;
-
-    public function __construct(Config $config)
+    public function __construct(\Pimple $p)
     {
-        $this->_c = $config;
-
-        $this->_logger = new Logger($this->_c->getValue('name'));
-        $this->_logger->pushHandler(new StreamHandler($this->_c->getSection('log')->getValue('file', false, NULL), $this->_c->getSection('log')->getValue('level', false, 400)));
-
-        $this->_storage = new PdoStorage($this->_c->getSection("storage"));
+        $this->_p = $p;
     }
 
     public function handleCallback(Request $r)
     {
         $callbackId = $r->get('id');
         if (NULL === $callbackId) {
-            throw new CallbackException("no callback id specified");
+            throw new BadRequestHttpException("callback identifier parameter missing");
         }
 
         // check if application is registered
-        $client = Client::fromArray($this->_c->getSection('registration')->getSection($callbackId)->toArray());
+        $client = Client::fromArray($this->_p['config']->getSection('registration')->getSection($callbackId)->toArray());
 
         $qState = $r->get('state');
         $qCode = $r->get('code');
         $qError = $r->get('error');
 
         if (NULL === $qState) {
-            throw new CallbackException("invalid state (missing)");
+            throw new BadRequestHttpException("state parameter missing");
         }
-        $state = $this->_storage->getState($callbackId, $qState);
+        $state = $this->_p['storage']->getState($callbackId, $qState);
         if (FALSE === $state) {
-            throw new CallbackException("invalid state (not found)");
+            throw new BadRequestHttpException("state not found");
         }
 
-        if (FALSE === $this->_storage->deleteState($callbackId, $qState)) {
-            throw new CallbackException("invalid state");
+        if (FALSE === $this->_p['storage']->deleteState($callbackId, $qState)) {
+            throw new BadRequestHttpException("state invalid or already used");
         }
 
         if (NULL === $qCode && NULL === $qError) {
-            throw new CallbackException("required parameter missing, either code or error must be a query parameter");
+            throw new CallbackException("code or error parameter missing");
         }
 
         if (NULL !== $qCode) {
@@ -85,7 +77,7 @@ class Callback
 
             $c = new \Guzzle\Http\Client();
 
-            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEBUG_FORMAT);
+            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_p['log']), MessageFormatter::DEBUG_FORMAT);
             $c->addSubscriber($logPlugin);
 
             if ($client->getCredentialsInRequestBody()) {
@@ -98,23 +90,23 @@ class Callback
             $response = $c->post($client->getTokenEndpoint())->addPostFields($p)->send();
             $data = $response->json();
             if (!is_array($data)) {
-                throw new CallbackException("unable to decode access token response");
+                throw new \Exception("unable to decode access token response");
             }
 
             $requiredKeys = array('token_type', 'access_token');
             foreach ($requiredKeys as $key) {
                 if (!array_key_exists($key, $data)) {
-                    throw new CallbackException("missing key in access_token response");
+                    throw new \Exception("missing key in access_token response");
                 }
             }
             $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
             $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
 
-            $this->_storage->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
+            $this->_p['storage']->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
 
             if (array_key_exists("refresh_token", $data)) {
                 // we got a refresh_token, store this as well
-                $this->_storage->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
+                $this->_p['storage']->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
             }
 
             return $state['return_uri'];
