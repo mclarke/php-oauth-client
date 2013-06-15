@@ -18,7 +18,6 @@
 namespace fkooman\OAuth\Client;
 
 use fkooman\Json\Json;
-use fkooman\Config\Config;
 use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
@@ -44,7 +43,7 @@ class Callback
         }
 
         // check if application is registered
-        $client = Client::fromArray($this->_p['config']->getSection('registration')->getSection($callbackId)->toArray());
+        $client = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
 
         $qState = $r->get('state');
         $qCode = $r->get('code');

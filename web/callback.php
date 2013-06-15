@@ -38,11 +38,11 @@ $app['config'] = function() {
     return Config::fromYamlFile($configFile);
 };
 $app['storage'] = function($c) {
-    return new PdoStorage($c['config']->getSection("storage"));
+    return new PdoStorage($c['config']->s("storage"));
 };
 $app['log'] = function($c) {
-    $l = new Logger($c['config']->getValue('name'));
-    $l->pushHandler(new StreamHandler($c['config']->getSection('log')->getValue('file', false, NULL), $c['config']->getSection('log')->getValue('level', false, 400)));
+    $l = new Logger($c['config']->l('name'));
+    $l->pushHandler(new StreamHandler($c['config']->s('log')->l('file', false, NULL), $c['config']->s('log')->l('level', false, 400)));
 
     return $l;
 };
