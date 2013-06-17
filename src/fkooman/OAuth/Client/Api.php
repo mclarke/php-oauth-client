@@ -25,10 +25,9 @@ use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
 use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
 use Guzzle\Http\Exception\ClientErrorResponseException;
+use Symfony\Component\HttpFoundation\Request;
 
 use fkooman\Config\Config;
-use RestService\Http\HttpRequest;
-use RestService\Http\IncomingHttpRequest;
 
 class Api
 {
@@ -47,9 +46,7 @@ class Api
         $configFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
         $this->_c = Config::fromYamlFile($configFile);
 
-        // determine the URL from which this script was called...
-        $request = HttpRequest::fromIncomingHttpRequest(new IncomingHttpRequest());
-        $this->_data['return_uri'] = $request->getRequestUri()->getUri();
+        $this->_data['return_uri'] = Request::createFromGlobals()->getUri();
 
         $this->_logger = new Logger($this->_c->getValue('name', FALSE, 'php-oauth-client'));
         $this->_logger->pushHandler(new StreamHandler($this->_c->getSection('log')->getValue('file', false, NULL), $this->_c->getSection('log')->getValue('level', false, 400)));
