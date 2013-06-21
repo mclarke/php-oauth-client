@@ -135,11 +135,11 @@ class Api
         try {
             $response = $bearerRequest->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
 
+            return $response;
         } catch (BearerRequestException $e) {
             // FIXME: mark access token as invalid and fetch a new one and try again if there was
             // a refresh token
         }
 
-        return $response;
     }
 }
