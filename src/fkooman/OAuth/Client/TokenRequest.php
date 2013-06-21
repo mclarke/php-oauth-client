@@ -104,7 +104,7 @@ class TokenRequest
 
         $response = $this->_c->post($tokenEndpoint)->addPostFields($p)->send();
         // FIXME: what if no JSON?
-        return AccessToken::fromArray($response->json());
+        return Token::fromArray($response->json());
     }
 
 }

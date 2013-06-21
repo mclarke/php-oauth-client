@@ -2,20 +2,20 @@
 
 require_once 'vendor/autoload.php';
 
-$accessToken = new \fkooman\OAuth\Client\AccessToken("foobar", "bearer");
+$token = new \fkooman\OAuth\Client\Token("foobar", "bearer");
 
-echo $accessToken->getAccessToken() . PHP_EOL;
-echo $accessToken->getTokenType() . PHP_EOL;
+echo $token->getAccessToken() . PHP_EOL;
+echo $token->getTokenType() . PHP_EOL;
 
-$accessTokenContainer = new \fkooman\OAuth\Client\AccessTokenContainer("conext", "fkooman", $accessToken);
+$accessToken = new \fkooman\OAuth\Client\AccessToken("conext", "fkooman", $token);
 
-echo $accessTokenContainer->getUserId() . PHP_EOL;
+echo $accessToken->getUserId() . PHP_EOL;
 
-echo $accessTokenContainer->getAccessToken()->getAccessToken() . PHP_EOL;
+echo $accessToken->getToken()->getAccessToken() . PHP_EOL;
 
 $data = array ("callback_id" => "callback_id", "user_id" => "user_id", "access_token" => "access_token", "token_type" => "bearer");
 
-$atc = \fkooman\OAuth\Client\AccessTokenContainer::fromArray($data);
+$atc = \fkooman\OAuth\Client\AccessToken::fromArray($data);
 
-echo $atc->getAccessToken()->getAccessToken() . PHP_EOL;
-echo $atc->getAccessToken()->getTokenType() . PHP_EOL;
+echo $atc->getToken()->getAccessToken() . PHP_EOL;
+echo $atc->getToken()->getTokenType() . PHP_EOL;

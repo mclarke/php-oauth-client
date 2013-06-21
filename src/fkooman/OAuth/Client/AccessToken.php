@@ -19,158 +19,112 @@ namespace fkooman\OAuth\Client;
 
 class AccessToken
 {
-    /**
-     * access_token VARCHAR(255) NOT NULL,
-     */
-    protected $_accessToken;
+    protected $token;
 
     /**
-     * token_type VARCHAR(255) NOT NULL,
+     * callback_id VARCHAR(255) NOT NULL,
      */
-    protected $_tokenType;
+    protected $_callbackId;
 
     /**
-     * expires_in INTEGER DEFAULT NULL,
+     * user_id VARCHAR(255) NOT NULL,
      */
-    protected $_expiresIn;
+    protected $_userId;
 
     /**
-     * refresh_token VARCHAR(255) NOT NULL,
+     * issue_time INTEGER NOT NULL,
      */
-    protected $_refreshToken;
+    protected $_issueTime;
 
     /**
-     * scope VARCHAR(255) DEFAULT NULL,
+     * is_usable INTEGER DEFAULT 1,
      */
-    protected $_scope;
+    protected $_isUsable;
 
-    public function __construct($accessToken = NULL, $tokenType = "bearer")
+    public function __construct($callbackId, $userId, Token $token)
     {
-        $this->setAccessToken($accessToken);
-        $this->setTokenType($tokenType);
-        $this->setExpiresIn(NULL);
-        $this->setRefreshToken(NULL);
-        $this->setScope(NULL);
+        $this->setToken($token);
+        $this->setCallbackId($callbackId);
+        $this->setUserId($userId);
+        $this->setIssueTime(NULL);
+        $this->setIsUsable(TRUE);
     }
 
     public static function fromArray(array $data)
     {
-        foreach (array('access_token', 'token_type') as $key) {
+        foreach (array('callback_id', 'user_id') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new AccessTokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['access_token'], $data['token_type']);
-        if (array_key_exists('expires_in', $data)) {
-            $t->setExpiresIn($data['expires_in']);
+        $token = Token::fromArray($data);
+
+        $t = new static($data['callback_id'], $data['user_id'], $token);
+        if (array_key_exists('issue_time', $data)) {
+            $t->setIssueTime($data['issue_time']);
         }
-        if (array_key_exists('refresh_token', $data)) {
-            $t->setRefreshToken($data['refresh_token']);
-        }
-        if (array_key_exists('scope', $data)) {
-            $t->setScope($data['scope']);
+        if (array_key_exists('is_usable', $data)) {
+            $t->setIsUsable($data['is_usable']);
         }
 
         return $t;
     }
 
-    public function setAccessToken($accessToken)
+    public function setToken(Token $token)
     {
-        if (!is_string($accessToken)) {
-            throw new AccessTokenException("access_token needs to be string");
-        }
-        $this->_accessToken = $accessToken;
+        $this->_token = $token;
     }
 
-    public function getAccessToken()
+    public function getToken()
     {
-        return $this->_accessToken;
+        return $this->_token;
     }
 
-    public function setTokenType($tokenType)
+    public function setCallbackId($callbackId)
     {
-        if (!is_string($tokenType)) {
-            throw new AccessTokenException("token_type needs to be string");
-        }
-        if (!in_array($tokenType, array("bearer"))) {
-            throw new AccessTokenException(sprintf("unsupported token type '%s'", $tokenType));
-        }
-        $this->_tokenType = $tokenType;
+        $this->_callbackId = $callbackId;
     }
 
-    public function getTokenType()
+    public function getCallbackId()
     {
-        return $this->_tokenType;
+        return $this->_callbackId;
     }
 
-    public function setExpiresIn($expiresIn)
+    public function setUserId($userId)
     {
-        if (NULL !== $expiresIn) {
-            if (!is_numeric($expiresIn) && 0 > $expiresIn) {
-                throw new AccessTokenException("expires_in should be positive integer");
+        $this->_userId = $userId;
+    }
+
+    public function getUserId()
+    {
+        return $this->_userId;
+    }
+
+    public function setIssueTime($issueTime)
+    {
+        if (NULL === $issueTime) {
+            $this->_issueTime = time();
+        } else {
+            if (!is_numeric($issueTime) && 0 > $issueTime) {
+                throw new AccessTokenException("issue_time should be positive integer");
             }
-            $this->_expiresIn = (int) $expiresIn;
+            $this->_issueTime = (int) $issueTime;
         }
     }
 
-    public function getExpiresIn()
+    public function getIssueTime()
     {
-        return $this->_expiresIn;
+        return $this->_issueTime;
     }
 
-    public function setRefreshToken($refreshToken)
+    public function setIsUsable($isUsable)
     {
-        if (NULL !== $refreshToken) {
-            if (!is_string($refreshToken)) {
-                throw new AccessTokenException("refresh_token needs to be string");
-            }
-            $this->_refreshToken = $refreshToken;
-        }
+        $this->_isUsable = (bool) $isUsable;
     }
 
-    public function getRefreshToken()
+    public function getIsUsable()
     {
-        return $this->_refreshToken;
-    }
-
-    public function setScope($scope)
-    {
-        if (NULL !== $scope) {
-            if (!is_string($scope)) {
-                throw new AccessTokenException("scope needs to be string");
-            }
-
-            $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
-            $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
-            $result = preg_match($scopeRegExp, $scope);
-            if (1 !== $result) {
-                throw new AccessTokenException(sprintf("invalid scope '%s'", $scope));
-            }
-            $this->_scope = self::_normalizeScope($scope);
-        }
-    }
-
-    public function getScope()
-    {
-        return $this->_scope;
-    }
-
-    private static function _normalizeScope($scope)
-    {
-        $explodedScope = explode(" ", $scope);
-        sort($explodedScope, SORT_STRING);
-
-        return implode(" ", array_values(array_unique($explodedScope, SORT_STRING)));
-    }
-
-    public function __toString()
-    {
-        $output = "AccessToken" . PHP_EOL;
-        $output .= "\taccess_token: " . $this->getAccessToken() . PHP_EOL;
-        $output .= "\ttoken_type: " . $this->getTokenType() . PHP_EOL;
-        $output .= PHP_EOL;
-
-        return $output;
+        return $this->_isUsable;
     }
 
 }

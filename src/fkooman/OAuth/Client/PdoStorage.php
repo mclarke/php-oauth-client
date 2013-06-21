@@ -36,35 +36,78 @@ class PdoStorage
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
         $stmt->execute();
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (FALSE !== $result) ? AccessToken::fromArray($result) : FALSE;
     }
 
-    public function storeAccessToken(AccessTokenContainer $accessTokenContainer)
+    public function storeAccessToken(AccessToken $accessToken)
     {
-        $accessToken = $accessTokenContainer->getAccessToken();
+        $token = $accessToken->getToken();
 
         $stmt = $this->_pdo->prepare("INSERT INTO oauth_access_tokens (callback_id, user_id, scope, access_token, token_type, expires_in, refresh_token, issue_time, is_usable) VALUES(:callback_id, :user_id, :scope, :access_token, :token_type, :expires_in, :refresh_token, :issue_time, :is_usable)");
-        $stmt->bindValue(":callback_id", $accessTokenContainer->getCallbackId(), PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $accessTokenContainer->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $accessToken->getScope(), PDO::PARAM_STR);
-        $stmt->bindValue(":access_token", $accessToken->getAccessToken(), PDO::PARAM_STR);
-        $stmt->bindValue(":token_type", $accessToken->getTokenType(), PDO::PARAM_STR);
-        $stmt->bindValue(":expires_in", $accessToken->getExpiresIn(), PDO::PARAM_INT);
-        $stmt->bindValue(":refresh_token", $accessToken->getRefreshToken(), PDO::PARAM_STR);
-        $stmt->bindValue(":issue_time", $accessTokenContainer->getIssueTime(), PDO::PARAM_INT);
-        $stmt->bindValue(":is_usable", $accessTokenContainer->getIsUsable(), PDO::PARAM_BOOL);
+        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $token->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":access_token", $token->getAccessToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":token_type", $token->getTokenType(), PDO::PARAM_STR);
+        $stmt->bindValue(":expires_in", $token->getExpiresIn(), PDO::PARAM_INT);
+        $stmt->bindValue(":refresh_token", $token->getRefreshToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":issue_time", $accessToken->getIssueTime(), PDO::PARAM_INT);
+        $stmt->bindValue(":is_usable", $accessToken->getIsUsable(), PDO::PARAM_BOOL);
 
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
     }
 
-    public function deleteAccessToken(AccessTokenContainer $a)
+    public function updateAccessToken(AccessToken $accessToken, AccessToken $newAccessToken)
+    {
+        $stmt = $this->_pdo->prepare("
+            UPDATE oauth_access_tokens
+            SET
+                access_token = :access_token,
+                token_type = :token_type,
+                scope = :scope,
+                expires_in = :expires_in,
+                refresh_token = :refresh_token,
+                issue_time = :issue_time,
+                is_usable = :is_usable
+            WHERE
+                callback_id = :callback_id
+                    AND user_id = :user_id
+                    AND scope = :previous_scope
+        ");
+
+        // if new token does not have a new refresh token, take the old one
+        $refreshToken = (NULL !== $newAccessToken->getToken()->getRefreshToken()) ? $newAccessToken->getToken()->getRefreshToken() : $accessToken->getToken()->getRefreshToken();
+
+        $stmt->bindValue(":access_token", $newAccessToken->getToken()->getAccessToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":token_type", $newAccessToken->getToken()->getTokenType(), PDO::PARAM_STR);
+        $stmt->bindValue(":expires_in", $newAccessToken->getToken()->getExpiresIn(), PDO::PARAM_INT);
+        $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $newAccessToken->getToken()->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":issue_time", $newAccessToken->getIssueTime(), PDO::PARAM_INT);
+        $stmt->bindValue(":is_usable", $newAccessToken->getIsUsable(), PDO::PARAM_BOOL);
+
+        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
+
+        // the scope retrieved using the refresh_token should really be the same as
+        // the scope from the initial token, we don't really deal with any other situation...
+        $stmt->bindValue(":previous_scope", $accessToken->getToken()->getScope(), PDO::PARAM_STR);
+
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount();
+    }
+
+    public function deleteAccessToken(AccessToken $accessToken)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_access_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND access_token = :access_token");
-        $stmt->bindValue(":callback_id", $a->getCallbackId(), PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $a->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":access_token", $a->getAccessToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":access_token", $accessToken->getToken()->getAccessToken(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
@@ -77,7 +120,9 @@ class PdoStorage
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
         $stmt->execute();
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (FALSE !== $result) ? State::fromArray($result) : FALSE;
     }
 
     public function storeState(State $state)

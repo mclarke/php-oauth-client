@@ -46,11 +46,10 @@ class Callback
         if (NULL === $qState) {
             throw new BadRequestHttpException("state parameter missing");
         }
-        $s = $this->_p['db']->getState($callbackId, $qState);
-        if (FALSE === $s) {
+        $state = $this->_p['db']->getState($callbackId, $qState);
+        if (FALSE === $state) {
             throw new BadRequestHttpException("state not found");
         }
-        $state = State::fromArray($s);
 
         if (FALSE === $this->_p['db']->deleteState($state)) {
             throw new BadRequestHttpException("state invalid or already used");
@@ -71,9 +70,8 @@ class Callback
             if (NULL === $token->getScope()) {
                 $token->setScope($state->getScope());
             }
-            $accessTokenContainer = new AccessTokenContainer($callbackId, $state->getUserId(), $token);
-
-            $this->_p['db']->storeAccessToken($accessTokenContainer);
+            $accessToken = new AccessToken($callbackId, $state->getUserId(), $token);
+            $this->_p['db']->storeAccessToken($accessToken);
 
             return $state->getReturnUri();
         }

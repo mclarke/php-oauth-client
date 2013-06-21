@@ -19,6 +19,11 @@ namespace fkooman\OAuth\Client;
 
 use fkooman\Config\Config;
 
+/**
+ * API for talking to OAuth 2.0 protected resources.
+ *
+ * @author François Kooman <fkooman@tuxed.net>
+ */
 class Api
 {
     private $_p;
@@ -28,7 +33,13 @@ class Api
     private $_scope;
     private $_returnUri;
 
-    public function __construct($callbackId, $userId, $scope = array())
+    /**
+     * Constructor
+     * @param string $callbackId
+     * @param string $userId
+     * @param array  $scope
+     */
+    public function __construct($callbackId, $userId, array $scope = array())
     {
         $this->setDiContainer(new DiContainer());
 
@@ -38,11 +49,19 @@ class Api
         $this->_returnUri = NULL;
     }
 
+    /**
+     * Set a DI container implementation
+     * @param \Pimple $p
+     */
     public function setDiContainer(\Pimple $p)
     {
         $this->_p = $p;
     }
 
+    /**
+     * Set the callback identifier
+     * @param string $callbackId
+     */
     public function setCallbackId($callbackId)
     {
         $this->_callbackId = $callbackId;
@@ -51,58 +70,74 @@ class Api
         $this->_p['client'] = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
     }
 
+    /**
+     * Set the scope
+     * @param array $scope
+     */
     public function setScope(array $scope)
     {
         $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
     }
 
+    /**
+     * Get the scope
+     * @return string
+     */
     public function getScope()
     {
         return $this->_scope;
     }
 
+    /**
+     * Set the user identifier
+     * @param string $userId
+     */
     public function setUserId($userId)
     {
         $this->_userId = $userId;
     }
 
+    /**
+     * Set the return URI
+     * @param string $returnUri
+     */
     public function setReturnUri($returnUri)
     {
         $this->_returnUri = $returnUri;
     }
 
+    /**
+     * Obtain an access token from the OAuth 2.0 authorization server
+     *
+     * @return \fkooman\OAuth\Client\AccessToken
+     */
     public function getAccessToken()
     {
         // do we have a valid access token?
-        $t = $this->_p['db']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
-        // FIXME: what if there is more than one?!
-        if (FALSE !== $t) {
-            $token = AccessTokenContainer::fromArray($t);
-            if ($token->getIsUsable()) {
-                return $token->getAccessToken();
+        $accessToken = $this->_p['db']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
+        if (FALSE !== $accessToken) {
+            if ($accessToken->getIsUsable()) {
+                return $accessToken;
             }
-            // no valid access token
-            // do we have refresh_token?
-            if (NULL !== $token->getRefreshToken()) {
+            // no valid access token, is there a refresh_token?
+            if (NULL !== $accessToken->getToken()->getRefreshToken()) {
                 // obtain a new access token from refresh token
                 $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
-                $newToken = $tokenRequest->fromRefreshToken($token->getRefreshToken());
-                if (TRUE) {
-                    // if it is ok, we update
-                    $this->_p['db']->updateAccessToken($this->_callbackId, $this->_userId, $token, $newToken);
-                } else {
-                    // we delete
-                    $this->_p['db']->deleteAccessToken($this->_callbackId, $this->_userId, $token);
+                $newToken = $tokenRequest->withRefreshToken($accessToken->getToken()->getRefreshToken());
+                if (FALSE !== $newToken) {
+                    // we got a new token
+                    $newAccessToken = new AccessToken($this->_callbackId, $this->_userId, $newToken);
+                    $this->_p['db']->updateAccessToken($accessToken, $newAccessToken);
+
+                    return $newAccessToken;
                 }
             }
+            // access token invalid, and not able to get a new one with a refresh token, delete it
+            $this->_p['db']->deleteAccessToken($accessToken);
         }
 
-        // no valid access token and no refresh token
-
-        // delete state if it exists, maybe there from failed attempt
+        // try to get a new access token
         $this->_p['db']->deleteExistingState($this->_callbackId, $this->_userId);
-
-        // store state
         $state = new State($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri);
         $this->_p['db']->storeState($state);
 
@@ -130,8 +165,10 @@ class Api
 
     public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
     {
-        $bearerToken = $this->getAccessToken()->getAccessToken();
-        $bearerRequest = new BearerRequest($this->_p['http'], $bearerToken);
+        $accessToken = $this->getAccessToken();
+        $token = $accessToken->getToken();
+
+        $bearerRequest = new BearerRequest($this->_p['http'], $token->getAccessToken());
         try {
             $response = $bearerRequest->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
 
@@ -139,6 +176,7 @@ class Api
         } catch (BearerRequestException $e) {
             // FIXME: mark access token as invalid and fetch a new one and try again if there was
             // a refresh token
+            //$this->_p['db']->
         }
 
     }
