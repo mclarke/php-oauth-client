@@ -85,14 +85,14 @@ resource server:
     <?php
     require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
 
+    use fkooman\OAuth\Client\Api;
+
     try { 
-        $client = new \fkooman\OAuth\Client\Api("SURFconext");
-        $client->setUserId("foo");
-        $client->setScope(array("read"));
+        $client = new Api("SURFconext", "foo", array("read"));
         $client->setReturnUri("http://localhost/demo/index.php");
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
-        echo $response->getContent();
+        echo $response->getBody();
     } catch (\fkooman\OAuth\Client\ApiException $e) {
         die($e->getMessage());
     }

@@ -17,7 +17,7 @@
 
 namespace fkooman\OAuth\Client;
 
-class DiContainer extends \Silex\Application
+class DiContainer extends \Pimple
 {
     public function __construct()
     {
