@@ -17,7 +17,6 @@
     "require": {
         "ext-openssl": "*", 
         "fkooman/php-lib-config": "0.1.*", 
-        "fkooman/php-lib-json": "0.1.*", 
         "guzzle/guzzle": "3.6.*", 
         "monolog/monolog": "1.5.*", 
         "php": ">=5.3.0", 

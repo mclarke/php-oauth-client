@@ -2,8 +2,10 @@
 
 namespace fkooman\OAuth\Client;
 
-class AccessTokenContainer extends AccessToken
+class AccessTokenContainer
 {
+    protected $_accessToken;
+
     /**
      * callback_id VARCHAR(255) NOT NULL,
      */
@@ -24,42 +26,43 @@ class AccessTokenContainer extends AccessToken
      */
     protected $_isUsable;
 
-    public function __construct($callbackId, $userId, $accessToken = NULL, $tokenType = "bearer")
+    public function __construct($callbackId, $userId, AccessToken $accessToken)
     {
-        parent::__construct($accessToken, $tokenType);
+        $this->setAccessToken($accessToken);
         $this->setCallbackId($callbackId);
         $this->setUserId($userId);
         $this->setIssueTime(NULL);
         $this->setIsUsable(TRUE);
     }
 
-    public static function fromArray(array $token)
+    public static function fromArray(array $data)
     {
-        foreach (array('callback_id', 'user_id', 'access_token', 'token_type') as $key) {
-            if (!array_key_exists($key, $token)) {
+        foreach (array('callback_id', 'user_id') as $key) {
+            if (!array_key_exists($key, $data)) {
                 throw new AccessTokenContainerException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($token['callback_id'], $token['user_id'], $token['access_token'], $token['token_type']);
-        if (array_key_exists('issue_time', $token)) {
-            $this->setIssueTime($token['issue_time']);
-        }
-        if (array_key_exists('is_usable', $token)) {
-            $this->setIsUsable($token['is_usable']);
-        }
+        $accessToken = AccessToken::fromArray($data);
 
-        // call setter methods from parent...
-        if (array_key_exists('expires_in', $token)) {
-            $this->setExpiresIn($token['expires_in']);
+        $t = new static($data['callback_id'], $data['user_id'], $accessToken);
+        if (array_key_exists('issue_time', $data)) {
+            $t->setIssueTime($data['issue_time']);
         }
-        if (array_key_exists('refresh_token', $token)) {
-            $this->setRefreshToken($token['refresh_token']);
-        }
-        if (array_key_exists('scope', $token)) {
-            $this->setScope($token['scope']);
+        if (array_key_exists('is_usable', $data)) {
+            $t->setIsUsable($data['is_usable']);
         }
 
         return $t;
+    }
+
+    public function setAccessToken(AccessToken $accessToken)
+    {
+        $this->_accessToken = $accessToken;
+    }
+
+    public function getAccessToken()
+    {
+        return $this->_accessToken;
     }
 
     public function setCallbackId($callbackId)

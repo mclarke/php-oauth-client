@@ -2,7 +2,7 @@
 
 namespace fkooman\OAuth\Client;
 
-class DiContainer extends \Pimple
+class DiContainer extends \Silex\Application
 {
     public function __construct()
     {
@@ -33,7 +33,9 @@ class DiContainer extends \Pimple
                 $db->exec("PRAGMA foreign_keys = ON");
             }
 
-            return $db;
+            $storage = new PdoStorage($db);
+
+            return $storage;
         };
 
         $this['log'] = function($c) {
@@ -42,7 +44,7 @@ class DiContainer extends \Pimple
             $log = new \Monolog\Logger($c['config']->l('name'));
             $log->pushHandler(new \Monolog\Handler\StreamHandler($config->l('file', FALSE, NULL), $config->l('level', FALSE, 400)));
 
-            return $l;
+            return $log;
         };
 
         $this['http'] = function($c) {

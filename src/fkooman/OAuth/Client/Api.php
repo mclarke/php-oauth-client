@@ -17,13 +17,6 @@
 
 namespace fkooman\OAuth\Client;
 
-use Guzzle\Http\Client as GuzzleClient;
-use Guzzle\Log\PsrLogAdapter;
-use Guzzle\Plugin\Log\LogPlugin;
-use Guzzle\Log\MessageFormatter;
-use Guzzle\Http\Exception\ClientErrorResponseException;
-use Symfony\Component\HttpFoundation\Request;
-
 use fkooman\Config\Config;
 
 class Api
@@ -32,16 +25,16 @@ class Api
 
     private $_callbackId;
     private $_userId;
-    private $_requestScope;
+    private $_scope;
     private $_returnUri;
 
-    public function __construct($callbackId, $userId, $requestScope = array())
+    public function __construct($callbackId, $userId, $scope = array())
     {
         $this->setDiContainer(new DiContainer());
 
         $this->setCallbackId($callbackId);
         $this->setUserId($userId);
-        $this->setRequestScope($requestScope);
+        $this->setScope($scope);
         $this->_returnUri = NULL;
     }
 
@@ -52,12 +45,20 @@ class Api
 
     public function setCallbackId($callbackId)
     {
+        $this->_callbackId = $callbackId;
+
+        // FIXME: also set the client... should not be here probably...
         $this->_p['client'] = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
     }
 
     public function setScope(array $scope)
     {
         $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
+    }
+
+    public function getScope()
+    {
+        return $this->_scope;
     }
 
     public function setUserId($userId)
@@ -73,11 +74,11 @@ class Api
     public function getAccessToken()
     {
         // do we have a valid access token?
-        $t = $this->_p['storage']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
+        $t = $this->_p['db']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
         // FIXME: what if there is more than one?!
         if (FALSE !== $t) {
-            $token = new AccessToken($t);
-            if ($token->isAccessTokenUsable()) {
+            $token = AccessTokenContainer::fromArray($t);
+            if ($token->getIsUsable()) {
                 return $token->getAccessToken();
             }
             // no valid access token
@@ -88,10 +89,10 @@ class Api
                 $newToken = $tokenRequest->fromRefreshToken($token->getRefreshToken());
                 if (TRUE) {
                     // if it is ok, we update
-                    $this->_p['storage']->updateAccessToken($this->_callbackId, $this->_userId, $token, $newToken);
+                    $this->_p['db']->updateAccessToken($this->_callbackId, $this->_userId, $token, $newToken);
                 } else {
                     // we delete
-                    $this->_p['storage']->deleteAccessToken($this->_callbackId, $this->_userId, $token);
+                    $this->_p['db']->deleteAccessToken($this->_callbackId, $this->_userId, $token);
                 }
             }
         }
@@ -99,19 +100,19 @@ class Api
         // no valid access token and no refresh token
 
         // delete state if it exists, maybe there from failed attempt
-        $this->_storage->deleteStateIfExists($this->_callbackId, $this->_userId);
+        $this->_p['db']->deleteExistingState($this->_callbackId, $this->_userId);
 
         // store state
-        $state = bin2hex(openssl_random_pseudo_bytes(8));
-        $this->_p['storage']->storeState($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri, $state);
+        $state = new State($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri);
+        $this->_p['db']->storeState($state);
 
         $q = array (
             "client_id" => $this->_p['client']->getClientId(),
             "response_type" => "code",
-            "state" => $state,
+            "state" => $state->getState(),
         );
-        if (NULL !== $this->_data['scope']) {
-            $q['scope'] = $this->_data['scope'];
+        if (NULL !== $this->_scope) {
+            $q['scope'] = $this->_scope;
         }
         if ($this->_p['client']->getRedirectUri()) {
             $q['redirect_uri'] = $this->_p['client']->getRedirectUri();
@@ -120,7 +121,7 @@ class Api
         $separator = (FALSE === strpos($this->_p['client']->getAuthorizeEndpoint(), "?")) ? "?" : "&";
         $authorizeUri = $this->_p['client']->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
 
-        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
+        $this->_p['log']->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
 
         header("HTTP/1.1 302 Found");
         header("Location: " . $authorizeUri);
@@ -129,53 +130,16 @@ class Api
 
     public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
     {
-        // we try to get the data from the RS, if that fails (with invalid_token)
-        // we try to obtain another access token after deleting the old one and
-        // try the request to the RS again. If that fails (again) an exception
-        // is thrown and the client application has to deal with it, but that
-        // would imply a serious problem somewhere...
+        $bearerToken = $this->getAccessToken()->getAccessToken();
+        $bearerRequest = new BearerRequest($this->_p['http'], $bearerToken);
+        try {
+            $response = $bearerRequest->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
 
-        // FIXME: does this actually work?
-        // we lose count if we redirect to the AS. So only with refresh_token
-        // problems this counting is of any use... need more thinking...
-        for ($i = 0; $i < 2; $i++) {
-            $accessToken = $this->getAccessToken();
-
-            $c = new GuzzleClient();
-            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEFAULT_FORMAT);
-            $c->addSubscriber($logPlugin);
-
-            $request = $c->createRequest($requestMethod, $requestUri);
-
-            foreach ($requestHeaders as $k => $v) {
-                $request->setHeader($k, $v);
-            }
-
-            // if Authorization header already exists, it is overwritten here...
-            $request->setHeader("Authorization", "Bearer " . $accessToken);
-
-            if ("POST" === $requestMethod) {
-                $request->addPostFields($postParameters);
-            }
-
-            try {
-                $response = $request->send();
-
-                return $response;
-            } catch (ClientErrorResponseException $e) {
-                if (401 === $e->getResponse()->getStatusCode()) {
-                // FIXME: check whether error WWW-Authenticate type is "invalid_token", only then it makes sense to try again
-                    $this->_storage->deleteAccessToken($this->_data['callback_id'], $this->_data['user_id'], $accessToken);
-                    continue;
-                } else {
-                    // throw it again
-                    throw $e;
-                }
-            }
-
-            return $response;
+        } catch (BearerRequestException $e) {
+            // FIXME: mark access token as invalid and fetch a new one and try again if there was
+            // a refresh token
         }
-        throw new ApiException("unable to obtain access token that was acceptable by the RS, wrong RS?");
-    }
 
+        return $response;
+    }
 }

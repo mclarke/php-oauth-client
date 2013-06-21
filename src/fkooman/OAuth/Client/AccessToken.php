@@ -38,22 +38,22 @@ class AccessToken
         $this->setScope(NULL);
     }
 
-    public static function fromArray(array $token)
+    public static function fromArray(array $data)
     {
         foreach (array('access_token', 'token_type') as $key) {
-            if (!array_key_exists($key, $token)) {
+            if (!array_key_exists($key, $data)) {
                 throw new AccessTokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($token['access_token'], $token['token_type']);
-        if (array_key_exists('expires_in', $token)) {
-            $this->setExpiresIn($token['expires_in']);
+        $t = new static($data['access_token'], $data['token_type']);
+        if (array_key_exists('expires_in', $data)) {
+            $t->setExpiresIn($data['expires_in']);
         }
-        if (array_key_exists('refresh_token', $token)) {
-            $this->setRefreshToken($token['refresh_token']);
+        if (array_key_exists('refresh_token', $data)) {
+            $t->setRefreshToken($data['refresh_token']);
         }
-        if (array_key_exists('scope', $token)) {
-            $this->setScope($token['scope']);
+        if (array_key_exists('scope', $data)) {
+            $t->setScope($data['scope']);
         }
 
         return $t;
@@ -61,6 +61,9 @@ class AccessToken
 
     public function setAccessToken($accessToken)
     {
+        if (!is_string($accessToken)) {
+            throw new AccessTokenException("access_token needs to be string");
+        }
         $this->_accessToken = $accessToken;
     }
 
@@ -71,6 +74,9 @@ class AccessToken
 
     public function setTokenType($tokenType)
     {
+        if (!is_string($tokenType)) {
+            throw new AccessTokenException("token_type needs to be string");
+        }
         if (!in_array($tokenType, array("bearer"))) {
             throw new AccessTokenException(sprintf("unsupported token type '%s'", $tokenType));
         }
@@ -99,7 +105,12 @@ class AccessToken
 
     public function setRefreshToken($refreshToken)
     {
-        $this->_refreshToken = $refreshToken;
+        if (NULL !== $refreshToken) {
+            if (!is_string($refreshToken)) {
+                throw new AccessTokenException("refresh_token needs to be string");
+            }
+            $this->_refreshToken = $refreshToken;
+        }
     }
 
     public function getRefreshToken()
@@ -135,6 +146,16 @@ class AccessToken
         sort($explodedScope, SORT_STRING);
 
         return implode(" ", array_values(array_unique($explodedScope, SORT_STRING)));
+    }
+
+    public function __toString()
+    {
+        $output = "AccessToken" . PHP_EOL;
+        $output .= "\taccess_token: " . $this->getAccessToken() . PHP_EOL;
+        $output .= "\ttoken_type: " . $this->getTokenType() . PHP_EOL;
+        $output .= PHP_EOL;
+
+        return $output;
     }
 
 }

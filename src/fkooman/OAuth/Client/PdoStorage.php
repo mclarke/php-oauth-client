@@ -17,11 +17,13 @@
 
 namespace fkooman\OAuth\Client;
 
+use \PDO as PDO;
+
 class PdoStorage
 {
     private $_pdo;
 
-    public function __construct(\PDO $p)
+    public function __construct(PDO $p)
     {
         $this->_pdo = $p;
     }
@@ -37,26 +39,32 @@ class PdoStorage
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function storeAccessToken($callbackId, $userId, $scope, $accessToken, $issueTime, $expiresIn)
+    public function storeAccessToken(AccessTokenContainer $accessTokenContainer)
     {
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_access_tokens (callback_id, user_id, scope, access_token, issue_time, expires_in) VALUES(:callback_id, :user_id, :scope, :access_token, :issue_time, :expires_in)");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $stmt->bindValue(":access_token", $accessToken, PDO::PARAM_STR);
-        $stmt->bindValue(":issue_time", $issueTime, PDO::PARAM_INT);
-        $stmt->bindValue(":expires_in", $expiresIn, PDO::PARAM_INT);
+        $accessToken = $accessTokenContainer->getAccessToken();
+
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_access_tokens (callback_id, user_id, scope, access_token, token_type, expires_in, refresh_token, issue_time, is_usable) VALUES(:callback_id, :user_id, :scope, :access_token, :token_type, :expires_in, :refresh_token, :issue_time, :is_usable)");
+        $stmt->bindValue(":callback_id", $accessTokenContainer->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $accessTokenContainer->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $accessToken->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":access_token", $accessToken->getAccessToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":token_type", $accessToken->getTokenType(), PDO::PARAM_STR);
+        $stmt->bindValue(":expires_in", $accessToken->getExpiresIn(), PDO::PARAM_INT);
+        $stmt->bindValue(":refresh_token", $accessToken->getRefreshToken(), PDO::PARAM_STR);
+        $stmt->bindValue(":issue_time", $accessTokenContainer->getIssueTime(), PDO::PARAM_INT);
+        $stmt->bindValue(":is_usable", $accessTokenContainer->getIsUsable(), PDO::PARAM_BOOL);
+
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
     }
 
-    public function deleteAccessToken($callbackId, $userId, $accessToken)
+    public function deleteAccessToken(AccessTokenContainer $a)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_access_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND access_token = :access_token");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":access_token", $accessToken, PDO::PARAM_STR);
+        $stmt->bindValue(":callback_id", $a->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $a->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":access_token", $a->getAccessToken(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
@@ -72,20 +80,20 @@ class PdoStorage
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function storeState($callbackId, $userId, $scope, $returnUri, $state)
+    public function storeState(State $state)
     {
         $stmt = $this->_pdo->prepare("INSERT INTO oauth_states (callback_id, user_id, scope, return_uri, state) VALUES(:callback_id, :user_id, :scope, :return_uri, :state)");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $stmt->bindValue(":return_uri", $returnUri, PDO::PARAM_STR);
-        $stmt->bindValue(":state", $state, PDO::PARAM_STR);
+        $stmt->bindValue(":callback_id", $state->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $state->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $state->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":return_uri", $state->getReturnUri(), PDO::PARAM_STR);
+        $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
     }
 
-    public function deleteStateIfExists($callbackId, $userId)
+    public function deleteExistingState($callbackId, $userId)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND user_id = :user_id");
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
@@ -95,32 +103,11 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
-    // FIXME: should this not include the userId?
-    public function deleteState($callbackId, $state)
+    public function deleteState(State $state)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":state", $state, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return 1 === $stmt->rowCount();
-    }
-
-    public function getChangeInfo()
-    {
-        $stmt = $this->_pdo->prepare("SELECT MAX(patch_number) AS patch_number, description FROM db_changelog WHERE patch_number IS NOT NULL");
-        $stmt->execute();
-        // ugly hack because query will always return a result, even if there is none...
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return NULL === $result['patch_number'] ? FALSE : $result;
-    }
-
-    public function addChangeInfo($patchNumber, $description)
-    {
-        $stmt = $this->_pdo->prepare("INSERT INTO db_changelog (patch_number, description) VALUES(:patch_number, :description)");
-        $stmt->bindValue(":patch_number", $patchNumber, PDO::PARAM_INT);
-        $stmt->bindValue(":description", $description, PDO::PARAM_STR);
+        $stmt->bindValue(":callback_id", $state->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();

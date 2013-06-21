@@ -46,12 +46,13 @@ class Callback
         if (NULL === $qState) {
             throw new BadRequestHttpException("state parameter missing");
         }
-        $state = $this->_p['storage']->getState($callbackId, $qState);
-        if (FALSE === $state) {
+        $s = $this->_p['db']->getState($callbackId, $qState);
+        if (FALSE === $s) {
             throw new BadRequestHttpException("state not found");
         }
+        $state = State::fromArray($s);
 
-        if (FALSE === $this->_p['storage']->deleteState($callbackId, $qState)) {
+        if (FALSE === $this->_p['db']->deleteState($state)) {
             throw new BadRequestHttpException("state invalid or already used");
         }
 
@@ -64,23 +65,17 @@ class Callback
             $guzzle = $this->_p['http'];
 
             $t = new TokenRequest($guzzle, $client->getTokenEndpoint(), $client->getClientId(), $client->getClientSecret());
-            $token = $t->fromAuthorizationCode($qCode);
+            $token = $t->withAuthorizationCode($qCode);
 
-            $expiresIn = $token->getExpiresIn();
-            if (NULL !== $token->getScope()) {
-                $scope = $token->getScope();
-            } else {
-                $scope = $state['scope'];
+            //$tt = new AccessToken($token);
+            if (NULL === $token->getScope()) {
+                $token->setScope($state->getScope());
             }
+            $accessTokenContainer = new AccessTokenContainer($callbackId, $state->getUserId(), $token);
 
-            $this->_p['storage']->storeAccessToken($callbackId, $state['user_id'], $scope, $token->getAccessToken(), time(), $expiresIn);
+            $this->_p['db']->storeAccessToken($accessTokenContainer);
 
-            if (NULL !== $token->getRefreshToken()) {
-                // we got a refresh_token, store this as well
-                $this->_p['storage']->storeRefreshToken($callbackId, $state['user_id'], $scope, $token->getRefreshToken());
-            }
-
-            return $state['return_uri'];
+            return $state->getReturnUri();
         }
 
         if (NULL !== $qError) {

@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS oauth_access_tokens (
     access_token VARCHAR(255) NOT NULL,
     token_type VARCHAR(255) NOT NULL,
     expires_in INTEGER DEFAULT NULL,
-    refresh_token VARCHAR(255) NOT NULL,
+    refresh_token VARCHAR(255) DEFAULT NULL,
     issue_time INTEGER NOT NULL,
-    access_token_usable INTEGER DEFAULT 1,
+    is_usable INTEGER DEFAULT 1,
     UNIQUE (callback_id , user_id , scope)
 );

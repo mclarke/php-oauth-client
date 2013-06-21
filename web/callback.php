@@ -17,38 +17,18 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use fkooman\Config\Config;
 use fkooman\OAuth\Client\Callback;
-use fkooman\OAuth\Client\PdoStorage;
 use Symfony\Component\HttpFoundation\Request;
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-
-// FIXME: use (or just Silex's DI stuff to feed Callback)
-
+$di = new \fkooman\OAuth\Client\DiContainer();
 $app = new Silex\Application();
 
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
     'twig.path' => __DIR__.'/../views',
 ));
-$app['config'] = function() {
-    $configFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
 
-    return Config::fromYamlFile($configFile);
-};
-$app['storage'] = function($c) {
-    return new PdoStorage($c['config']->s("storage"));
-};
-$app['log'] = function($c) {
-    $l = new Logger($c['config']->l('name'));
-    $l->pushHandler(new StreamHandler($c['config']->s('log')->l('file', false, NULL), $c['config']->s('log')->l('level', false, 400)));
-
-    return $l;
-};
-
-$app->get('/', function(Request $request) use ($app) {
-    $service = new Callback($app);
+$app->get('/', function(Request $request) use ($app, $di) {
+    $service = new Callback($di);
     $returnUri = $service->handleCallback($request);
 
     return $app->redirect($returnUri);
