@@ -16,10 +16,8 @@ class ClientTest extends PHPUnit_Framework_TestCase
         $this->assertEquals("bar", $c->getClientSecret());
         $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
         $this->assertEquals("http://www.example.org/token", $c->getTokenEndpoint());
-        $this->assertFalse($c->getRedirectUri());
+        $this->assertNull($c->getRedirectUri());
         $this->assertFalse($c->getCredentialsInRequestBody());
-        $this->assertEquals($data, $c->toArray());
-        $this->assertEquals(json_encode($data), $c->toJson());
     }
 
     public function testLessSimple()
@@ -32,8 +30,7 @@ class ClientTest extends PHPUnit_Framework_TestCase
         $this->assertEquals("http://www.example.org/token", $c->getTokenEndpoint());
         $this->assertEquals("http://www.example.org/callback", $c->getRedirectUri());
         $this->assertTrue($c->getCredentialsInRequestBody());
-        $this->assertEquals($data, $c->toArray());
-        $this->assertEquals(json_encode($data), $c->toJson());
+
     }
 
     /**
@@ -42,7 +39,6 @@ class ClientTest extends PHPUnit_Framework_TestCase
     public function testValidClients(array $data)
     {
         Client::fromArray($data);
-        Client::fromJson(json_encode($data));
     }
 
     /**
@@ -82,7 +78,7 @@ class ClientTest extends PHPUnit_Framework_TestCase
         return array(
             array(
                 array(),
-                "client_id must be set"
+                "missing field 'client_id'"
             ),
             array(
                 array("client_id" => "", "client_secret" => "", "authorize_endpoint" => "", "token_endpoint" => ""),
@@ -90,32 +86,32 @@ class ClientTest extends PHPUnit_Framework_TestCase
             ),
             array(
                 array("client_id" => "foo"),
-                "client_secret must be set"
+                "missing field 'client_secret'"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar"),
-                "authorize_endpoint must be set"
+                "missing field 'authorize_endpoint'"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => 5),
-                "endpoint must be non empty string"
+                "uri must be non empty string"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize"),
-                "token_endpoint must be set"
+                "missing field 'token_endpoint'"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "not_a_url", "token_endpoint" => "http://www.example.org/token#foo"),
-                "endpoint must be valid URL"
+                "uri must be valid URL"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token#foo"),
-                "endpoint must not contain a fragment"
+                "uri must not contain a fragment"
             ),
-            array(
-              array ("client_id" => "foo:abc", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
-                "client_id and/or client_secret cannot contain colon ':'"
-            ),
+            //array(
+            //  array ("client_id" => "foo:abc", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
+            //    "client_id and/or client_secret cannot contain colon ':'"
+            //),
             array(
               array ("client_id" => "foo", "client_secret" => "∑", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
                 "invalid character(s) in client_id or client_secret"
