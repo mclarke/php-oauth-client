@@ -17,12 +17,6 @@
 
 namespace fkooman\OAuth\Client;
 
-use fkooman\Json\Json;
-use Guzzle\Log\PsrLogAdapter;
-use Guzzle\Plugin\Log\LogPlugin;
-use Guzzle\Log\MessageFormatter;
-use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
-
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -62,50 +56,28 @@ class Callback
         }
 
         if (NULL === $qCode && NULL === $qError) {
-            throw new CallbackException("code or error parameter missing");
+            throw new BadRequestHttpException("code or error parameter missing");
         }
 
         if (NULL !== $qCode) {
-            $p = array (
-                "code" => $qCode,
-                "grant_type" => "authorization_code"
-            );
-            if ($client->getRedirectUri()) {
-                $p['redirect_uri'] = $client->getRedirectUri();
-            }
 
-            $c = new \Guzzle\Http\Client();
+            $guzzle = $this->_p['http'];
 
-            $logPlugin = new LogPlugin(new PsrLogAdapter($this->_p['log']), MessageFormatter::DEBUG_FORMAT);
-            $c->addSubscriber($logPlugin);
+            $t = new TokenRequest($guzzle, $client->getTokenEndpoint(), $client->getClientId(), $client->getClientSecret());
+            $token = $t->fromAuthorizationCode($qCode);
 
-            if ($client->getCredentialsInRequestBody()) {
-                $p['client_id'] = $client->getClientId();
-                $p['client_secret'] = $client->getClientSecret();
+            $expiresIn = $token->getExpiresIn();
+            if (NULL !== $token->getScope()) {
+                $scope = $token->getScope();
             } else {
-                // use basic authentication
-                $c->addSubscriber(new CurlAuthPlugin($client->getClientId(), $client->getClientSecret()));
-            }
-            $response = $c->post($client->getTokenEndpoint())->addPostFields($p)->send();
-            $data = $response->json();
-            if (!is_array($data)) {
-                throw new \Exception("unable to decode access token response");
+                $scope = $state['scope'];
             }
 
-            $requiredKeys = array('token_type', 'access_token');
-            foreach ($requiredKeys as $key) {
-                if (!array_key_exists($key, $data)) {
-                    throw new \Exception("missing key in access_token response");
-                }
-            }
-            $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
-            $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
+            $this->_p['storage']->storeAccessToken($callbackId, $state['user_id'], $scope, $token->getAccessToken(), time(), $expiresIn);
 
-            $this->_p['storage']->storeAccessToken($callbackId, $state['user_id'], $scope, $data['access_token'], time(), $expiresIn);
-
-            if (array_key_exists("refresh_token", $data)) {
+            if (NULL !== $token->getRefreshToken()) {
                 // we got a refresh_token, store this as well
-                $this->_p['storage']->storeRefreshToken($callbackId, $state['user_id'], $scope, $data['refresh_token']);
+                $this->_p['storage']->storeRefreshToken($callbackId, $state['user_id'], $scope, $token->getRefreshToken());
             }
 
             return $state['return_uri'];

@@ -17,30 +17,13 @@
 
 namespace fkooman\OAuth\Client;
 
-use fkooman\Config\Config;
-use PDO as PDO;
-
 class PdoStorage
 {
-    private $_c;
     private $_pdo;
 
-    public function __construct(Config $c)
+    public function __construct(\PDO $p)
     {
-        $this->_c = $c;
-
-        $driverOptions = array();
-        if ($this->_c->getValue('persistentConnection', false, false)) {
-            $driverOptions = array(PDO::ATTR_PERSISTENT => TRUE);
-        }
-
-        $this->_pdo = new PDO($this->_c->getValue('dsn', TRUE), $this->_c->getValue('username', FALSE), $this->_c->getValue('password', FALSE), $driverOptions);
-        $this->_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        if (0 === strpos($this->_c->getValue('dsn'), "sqlite:")) {
-            // only for SQlite
-            $this->_pdo->exec("PRAGMA foreign_keys = ON");
-        }
+        $this->_pdo = $p;
     }
 
     public function getAccessToken($callbackId, $userId, $scope)
@@ -66,7 +49,6 @@ class PdoStorage
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
-
     }
 
     public function deleteAccessToken($callbackId, $userId, $accessToken)
@@ -75,40 +57,6 @@ class PdoStorage
         $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $accessToken, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return 1 === $stmt->rowCount();
-    }
-
-    public function getRefreshToken($callbackId, $userId, $scope)
-    {
-        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_refresh_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND scope = :scope");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function storeRefreshToken($callbackId, $userId, $scope, $refreshToken)
-    {
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_refresh_tokens (callback_id, user_id, scope, refresh_token) VALUES(:callback_id, :user_id, :scope, :refresh_token)");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
-        $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
-        $stmt->execute();
-
-        return 1 === $stmt->rowCount();
-    }
-
-    public function deleteRefreshToken($callbackId, $userId, $refreshToken)
-    {
-        $stmt = $this->_pdo->prepare("DELETE FROM oauth_refresh_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND refresh_token = :refresh_token");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":refresh_token", $refreshToken, PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
@@ -137,7 +85,6 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
-    /** DEPRECATED? **/
     public function deleteStateIfExists($callbackId, $userId)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND user_id = :user_id");
@@ -148,6 +95,7 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
+    // FIXME: should this not include the userId?
     public function deleteState($callbackId, $state)
     {
         $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND state = :state");

@@ -17,13 +17,10 @@
 
 namespace fkooman\OAuth\Client;
 
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
 use Guzzle\Http\Client as GuzzleClient;
 use Guzzle\Log\PsrLogAdapter;
 use Guzzle\Plugin\Log\LogPlugin;
 use Guzzle\Log\MessageFormatter;
-use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
 use Guzzle\Http\Exception\ClientErrorResponseException;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -31,186 +28,99 @@ use fkooman\Config\Config;
 
 class Api
 {
-    private $_data;
-    private $_c;
-    private $_logger;
-    private $_storage;
+    private $_p;
 
-    public function __construct($callbackId)
+    private $_callbackId;
+    private $_userId;
+    private $_requestScope;
+    private $_returnUri;
+
+    public function __construct($callbackId, $userId, $requestScope = array())
     {
-        $this->_data = array();
-        $this->_data['callback_id'] = $callbackId;
-        $this->_data['user_id'] = NULL;
-        $this->_data['scope'] = NULL;
+        $this->setDiContainer(new DiContainer());
 
-        $configFile = dirname(dirname(dirname(dirname(__DIR__)))) . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.yaml";
-        $this->_c = Config::fromYamlFile($configFile);
+        $this->setCallbackId($callbackId);
+        $this->setUserId($userId);
+        $this->setRequestScope($requestScope);
+        $this->_returnUri = NULL;
+    }
 
-        $this->_data['return_uri'] = Request::createFromGlobals()->getUri();
+    public function setDiContainer(\Pimple $p)
+    {
+        $this->_p = $p;
+    }
 
-        $this->_logger = new Logger($this->_c->getValue('name', FALSE, 'php-oauth-client'));
-        $this->_logger->pushHandler(new StreamHandler($this->_c->getSection('log')->getValue('file', false, NULL), $this->_c->getSection('log')->getValue('level', false, 400)));
-
-        $this->_storage = new PdoStorage($this->_c->getSection('storage'));
+    public function setCallbackId($callbackId)
+    {
+        $this->_p['client'] = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
     }
 
     public function setScope(array $scope)
     {
-        foreach ($scope as $s) {
-            $scopePattern = '/^(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+$/';
-            $result = preg_match($scopePattern, $s);
-            if (1 !== $result) {
-                $msg = sprintf("invalid scope '%s'", $s);
-                $this->_logger->addError($msg, $this->_data);
-                throw new ApiException($msg);
-            }
-        }
-        sort($scope, SORT_STRING);
-        $this->_data['scope'] = implode(" ", array_values(array_unique($scope, SORT_STRING)));
-        $this->_logger->addInfo("set scope", $this->_data);
+        $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
     }
 
     public function setUserId($userId)
     {
-        $this->_data['user_id'] = $userId;
-        $this->_logger->addInfo("set user_id", $this->_data);
+        $this->_userId = $userId;
     }
 
     public function setReturnUri($returnUri)
     {
-        $this->_data['return_uri'] = $returnUri;
-        $this->_logger->addInfo("set return_uri", $this->_data);
+        $this->_returnUri = $returnUri;
     }
 
     public function getAccessToken()
     {
-        $this->_logger->addInfo("get access_token", $this->_data);
-
-        // FIXME: deal with user giving less scope than requested
-        // FIXME: rename this class to something nice
-        // FIXME: do something with ApiException, rename it at least...
-
-        // check if application is registered
-        $client = Client::fromArray($this->_c->getSection('registration')->getSection($this->_data['callback_id'])->toArray());
-
-        // check if access token is actually available for this user, if
-        $token = $this->_storage->getAccessToken($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope']);
-
-        if (!empty($token)) {
-            if (NULL === $token['expires_in']) {
-                // no known expires_in, so assume token is valid
-                $this->_logger->addInfo("token found, no known expiry", $this->_data);
-
-                return $token['access_token'];
+        // do we have a valid access token?
+        $t = $this->_p['storage']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
+        // FIXME: what if there is more than one?!
+        if (FALSE !== $t) {
+            $token = new AccessToken($t);
+            if ($token->isAccessTokenUsable()) {
+                return $token->getAccessToken();
             }
-            if ($token['issue_time'] + $token['expires_in'] > time()) {
-                // appears valid
-                $this->_logger->addInfo("token found, not expired yet", $this->_data);
-
-                return $token['access_token'];
-            }
-            $this->_logger->addInfo("token found, but expired", $this->_data);
-            $this->_storage->deleteAccessToken($this->_data['callback_id'], $this->_data['user_id'], $token['access_token']);
-        }
-
-        $this->_logger->addInfo("no token, request a new one", $this->_data);
-        // do we have a refreshToken?
-        $token = $this->_storage->getRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope']);
-        if (!empty($token)) {
-            $this->_logger->addInfo("refresh token found, use it to request a new token", $this->_data);
-            // there is something here...
-            // exchange it for an access_token
-            // FIXME: do somthing with these ugly exceptions
-            try {
-                $p = array (
-                    "refresh_token" => $token['refresh_token'],
-                    "grant_type" => "refresh_token"
-                );
-
-                $c = new GuzzleClient();
-
-                $logPlugin = new LogPlugin(new PsrLogAdapter($this->_logger), MessageFormatter::DEFAULT_FORMAT);
-                $c->addSubscriber($logPlugin);
-
-                if ($client->getCredentialsInRequestBody()) {
-                    $p['client_id'] = $client->getClientId();
-                    $p['client_secret'] = $client->getClientSecret();
+            // no valid access token
+            // do we have refresh_token?
+            if (NULL !== $token->getRefreshToken()) {
+                // obtain a new access token from refresh token
+                $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
+                $newToken = $tokenRequest->fromRefreshToken($token->getRefreshToken());
+                if (TRUE) {
+                    // if it is ok, we update
+                    $this->_p['storage']->updateAccessToken($this->_callbackId, $this->_userId, $token, $newToken);
                 } else {
-                    // FIXME: you have to be careful to not use ':' in the client_id/client_secret
-                    // use basic authentication
-                    $c->addSubscriber(new CurlAuthPlugin($client->getClientId(), $client->getClientSecret()));
+                    // we delete
+                    $this->_p['storage']->deleteAccessToken($this->_callbackId, $this->_userId, $token);
                 }
-                $response = $c->post($client->getTokenEndpoint())->addPostFields($p)->send();
-                $data = $response->json();
-                if (!is_array($data)) {
-                    throw new ApiException("unable to decode access token response");
-                }
-
-                $requiredKeys = array('token_type', 'access_token');
-                foreach ($requiredKeys as $key) {
-                    if (!array_key_exists($key, $data)) {
-                        throw new ApiException("missing key in access_token response");
-                    }
-                }
-                $expiresIn = array_key_exists("expires_in", $data) ? $data['expires_in'] : NULL;
-                $scope = array_key_exists("scope", $data) ? $data['scope'] : $state['scope'];
-
-                $this->_storage->storeAccessToken($this->_data['callback_id'], $this->_data['user_id'], $scope, $data['access_token'], time(), $expiresIn);
-
-                // did we get a new refresh_token?
-                if (array_key_exists("refresh_token", $data)) {
-                    // we got a refresh_token, store this as well
-                    // FIXME: maybe the delete the one we have now?
-                    $this->_storage->storeRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $scope, $data['refresh_token']);
-                }
-
-                return $data['access_token'];
-
-            } catch (ClientErrorResponseException $e) {
-                $this->_logger->addInfo("unable to use refresh_token", $this->_data);
-                $this->_storage->deleteRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $token['refresh_token']);
-            } catch (ApiException $e) {
-                // remove the refresh_token, it didn't work so get rid of it, it might not be the fault of the refresh_token, but anyway...
-                // FIXME: this should only be for broken server responses, not for wrong refresh token or something
-                $this->_logger->addInfo("unable to use refresh_token (ApiException)", $this->_data);
-
-                $this->_storage->deleteRefreshToken($this->_data['callback_id'], $this->_data['user_id'], $token['refresh_token']);
-
-                //$this->_logger->logWarn("unable to fetch access token using refresh token, falling back to getting a new authorization code...");
-                // do nothing...
             }
         }
 
-        $this->_logger->addInfo("no token, no refresh token, request a new access token", $this->_data);
-        // if there is no access_token and refresh_token failed, just ask for
-        // authorization again
+        // no valid access token and no refresh token
 
-        // no access token obtained so far...
-
-        // delete state if it exists
-        $this->_storage->deleteStateIfExists($this->_data['callback_id'], $this->_data['user_id']);
+        // delete state if it exists, maybe there from failed attempt
+        $this->_storage->deleteStateIfExists($this->_callbackId, $this->_userId);
 
         // store state
         $state = bin2hex(openssl_random_pseudo_bytes(8));
-
-        $this->_storage->storeState($this->_data['callback_id'], $this->_data['user_id'], $this->_data['scope'], $this->_data['return_uri'], $state);
+        $this->_p['storage']->storeState($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri, $state);
 
         $q = array (
-            "client_id" => $client->getClientId(),
+            "client_id" => $this->_p['client']->getClientId(),
             "response_type" => "code",
             "state" => $state,
         );
         if (NULL !== $this->_data['scope']) {
             $q['scope'] = $this->_data['scope'];
         }
-        if ($client->getRedirectUri()) {
-            $q['redirect_uri'] = $client->getRedirectUri();
+        if ($this->_p['client']->getRedirectUri()) {
+            $q['redirect_uri'] = $this->_p['client']->getRedirectUri();
         }
 
-        $separator = (FALSE === strpos($client->getAuthorizeEndpoint(), "?")) ? "?" : "&";
-        $authorizeUri = $client->getAuthorizeEndpoint() . $separator . http_build_query($q);
+        $separator = (FALSE === strpos($this->_p['client']->getAuthorizeEndpoint(), "?")) ? "?" : "&";
+        $authorizeUri = $this->_p['client']->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
 
-        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri), $this->_data);
+        $this->_logger->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
 
         header("HTTP/1.1 302 Found");
         header("Location: " . $authorizeUri);
