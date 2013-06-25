@@ -64,9 +64,12 @@ class Callback
             $guzzle = $this->_p['http'];
 
             $t = new TokenRequest($guzzle, $client->getTokenEndpoint(), $client->getClientId(), $client->getClientSecret());
+            $t->setRedirectUri($client->getRedirectUri());
             $token = $t->withAuthorizationCode($qCode);
-
-            //$tt = new AccessToken($token);
+            if (false === $token) {
+                // FIXME: better error, this should probably not be 500?
+                throw new CallbackException("unable to fetch token with authorization code");
+            }
             if (NULL === $token->getScope()) {
                 $token->setScope($state->getScope());
             }
