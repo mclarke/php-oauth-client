@@ -88,8 +88,7 @@ resource server:
     use fkooman\OAuth\Client\Api;
 
     try { 
-        $client = new Api("SURFconext", "foo", array("read"));
-        $client->setReturnUri("http://localhost/demo/index.php");
+        $client = new Api("SURFconext", "john", array("read"));
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
         echo $response->getBody();
@@ -122,6 +121,41 @@ the `setReturnUri` method as well, but usually this will not be necessary.
 
     $client->setReturnUri("https://myapp.example.org/2012/05/11?sort=ascending");
 
+# Advanced Integration
+If you application you want to integrate OAuth 2.0 support is a little more 
+advanced you might want to take care of things like browser redirects or 
+HTTP requests to the resource server yourself. In that case you only use the 
+API to obtain an access token and handle the rest in your application.
+
+    <?php
+        require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
+
+        use fkooman\OAuth\Client\Api;
+        
+        $client = new Api("SURFconext", "john", array("read"));
+        $accessToken = $client->getAccessToken();
+        if(false === $accessToken) {
+            // no token available, we have to go to the authorization server
+            $authorizeUri = $client->getAuthorizeUri();
+            header("HTTP/1.1 302 Found");
+            header("Location: " . $authorizeUri);
+            exit;
+        }
+        $bearerToken = $accessToken->getToken()->getAccessToken();
+        // now you can use the string $bearerToken in your HTTP request as a 
+        // Bearer token, for example using Guzzle:
+
+        $client = new \Guzzle\Http\Client('http://api.example.org');
+        $request = $client->get('/');
+        $request->setHeader("Authorization", "Bearer " . $bearerToken);
+        $response = $request->send();
+        
+Please note that you will have to take care of the situation in which the 
+access token was revoked at the authorization server: the access token is not
+expired, but will not work. So you will have to remove the access token and
+try again.     
+
+The API provides support for this
 # Logging and Debugging
 The client has extensive logging functionality available. You can configure the
 log level in `config/config.yaml`. The log is by default written to the 

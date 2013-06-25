@@ -16,8 +16,9 @@
     "name": "fkooman/php-oauth-client", 
     "require": {
         "ext-openssl": "*", 
+        "fkooman/guzzle-bearer-auth-plugin": "0.2.*", 
         "fkooman/php-lib-config": "0.1.*", 
-        "guzzle/guzzle": "3.6.*", 
+        "guzzle/guzzle": "3.7.*", 
         "monolog/monolog": "1.5.*", 
         "php": ">=5.3.0", 
         "silex/silex": "1.0.*", 

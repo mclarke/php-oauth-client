@@ -102,9 +102,16 @@ class TokenRequest
             $this->_c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->_clientId, $this->_clientSecret));
         }
 
-        $response = $this->_c->post($tokenEndpoint)->addPostFields($p)->send();
-        // FIXME: what if no JSON?
-        return Token::fromArray($response->json());
+        try {
+            $response = $this->_c->post($tokenEndpoint)->addPostFields($p)->send();
+            // FIXME: what if no JSON?
+            return Token::fromArray($response->json());
+        } catch (\Guzzle\Http\Exception\ClientErrorResponseException $e) {
+            // FIXME: if authorization code request fails? What should we do then?!
+            // whenever there is 4xx error, we return FALSE, if some other error
+            // occurs we just pass along the Exception...
+            return FALSE;
+        }
     }
 
 }

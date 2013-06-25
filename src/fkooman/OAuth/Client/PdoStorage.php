@@ -113,6 +113,18 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
+    public function invalidateAccessToken(AccessToken $accessToken)
+    {
+        $stmt = $this->_pdo->prepare("UPDATE oauth_access_tokens SET is_usable = :is_usable WHERE callback_id = :callback_id AND user_id = :user_id AND access_token = :access_token");
+        $stmt->bindValue(":is_usable", FALSE, PDO::PARAM_BOOL);
+        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":access_token", $accessToken->getToken()->getAccessToken(), PDO::PARAM_STR);
+        $stmt->execute();
+
+        return 1 === $stmt->rowCount();
+    }
+
     public function getState($callbackId, $state)
     {
         $stmt = $this->_pdo->prepare("SELECT * FROM oauth_states WHERE callback_id = :callback_id AND state = :state");

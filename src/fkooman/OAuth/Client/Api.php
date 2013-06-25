@@ -17,7 +17,8 @@
 
 namespace fkooman\OAuth\Client;
 
-use fkooman\Config\Config;
+use fkooman\Guzzle\Plugin\BearerAuth\BearerAuth;
+use fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException;
 
 /**
  * API for talking to OAuth 2.0 protected resources.
@@ -109,7 +110,7 @@ class Api
     /**
      * Obtain an access token from the OAuth 2.0 authorization server
      *
-     * @return \fkooman\OAuth\Client\AccessToken
+     * @return \fkooman\OAuth\Client\AccessToken|false
      */
     public function getAccessToken()
     {
@@ -136,6 +137,11 @@ class Api
             $this->_p['db']->deleteAccessToken($accessToken);
         }
 
+        return FALSE;
+    }
+
+    public function getAuthorizeUri()
+    {
         // try to get a new access token
         $this->_p['db']->deleteExistingState($this->_callbackId, $this->_userId);
         $state = new State($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri);
@@ -156,28 +162,42 @@ class Api
         $separator = (FALSE === strpos($this->_p['client']->getAuthorizeEndpoint(), "?")) ? "?" : "&";
         $authorizeUri = $this->_p['client']->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
 
-        $this->_p['log']->addInfo(sprintf("redirecting browser to '%s'", $authorizeUri));
-
-        header("HTTP/1.1 302 Found");
-        header("Location: " . $authorizeUri);
-        exit;
+        return $authorizeUri;
     }
 
     public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
     {
         $accessToken = $this->getAccessToken();
-        $token = $accessToken->getToken();
-
-        $bearerRequest = new BearerRequest($this->_p['http'], $token->getAccessToken());
-        try {
-            $response = $bearerRequest->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
-
-            return $response;
-        } catch (BearerRequestException $e) {
-            // FIXME: mark access token as invalid and fetch a new one and try again if there was
-            // a refresh token
-            //$this->_p['db']->
+        if (false === $accessToken) {
+            $authorizeUri = $this->getAuthorizeUri();
+            header("HTTP/1.1 302 Found");
+            header("Location: " . $authorizeUri);
+            exit;
         }
 
+        try {
+            $g = new \Guzzle\Http\Client();
+            $bearerAuth = new BearerAuth($accessToken->getToken()->getAccessToken());
+            $g->addSubscriber($bearerAuth);
+
+            $request = $g->createRequest($requestMethod, $requestUri);
+            foreach ($requestHeaders as $k => $v) {
+                $request->setHeader($k, $v);
+            }
+
+            if ("POST" === $requestMethod) {
+                $request->addPostFields($postParameters);
+            }
+
+            return $request->send();
+        } catch (BearerErrorResponseException $e) {
+            if ("invalid_token" === $e->getBearerReason()) {
+                $this->_p['db']->invalidateAccessToken($accessToken);
+                // FIXME: should we try again?!!!
+                return $this->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
+            }
+            // we cannot really do anything here, pass it along...
+            throw $e;
+        }
     }
 }
