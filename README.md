@@ -92,7 +92,7 @@ resource server:
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
         echo $response->getBody();
-    } catch (\fkooman\OAuth\Client\ApiException $e) {
+    } catch (Exception $e) {
         die($e->getMessage());
     }
     ?>
@@ -194,13 +194,13 @@ The following is an example application for Google Drive to list your files:
     <?php
     require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
 
+    use fkooman\OAuth\Client\Api;
+
     try {
-        $client = new \fkooman\OAuth\Client\Api("drive");
-        $client->setUserId("foo");
-        $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
+        $client = new Api("drive", "foo", array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
         $response = $client->makeRequest("https://www.googleapis.com/drive/v2/files");
-        $jsonData = $response->getContent();
+        $jsonData = $response->getBody();
         $data = json_decode($jsonData, TRUE);
         foreach ($data['items'] as $i) {
             echo "<ul>";
