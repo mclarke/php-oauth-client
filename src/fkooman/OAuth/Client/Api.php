@@ -48,6 +48,7 @@ class Api
         $this->setUserId($userId);
         $this->setScope($scope);
         $this->_returnUri = NULL;
+        $this->_state = NULL;
     }
 
     /**
@@ -78,6 +79,14 @@ class Api
     public function setScope(array $scope)
     {
         $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
+    }
+
+    public function setState($state)
+    {
+        if (!is_string($state)) {
+            throw new ApiException("state should be string");
+        }
+        $this->_state = $state;
     }
 
     /**
@@ -145,6 +154,9 @@ class Api
         // try to get a new access token
         $this->_p['db']->deleteExistingState($this->_callbackId, $this->_userId);
         $state = new State($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri);
+        if (NULL !== $this->_state) {
+            $state->setState($this->_state);
+        }
         $this->_p['db']->storeState($state);
 
         $q = array (
