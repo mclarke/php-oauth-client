@@ -34,21 +34,14 @@ class Api
     private $_scope;
     private $_returnUri;
 
-    /**
-     * Constructor
-     * @param string $callbackId
-     * @param string $userId
-     * @param array  $scope
-     */
-    public function __construct($callbackId, $userId, array $scope = array())
+    public function __construct()
     {
-        $this->setDiContainer(new DiContainer());
-
-        $this->setCallbackId($callbackId);
-        $this->setUserId($userId);
-        $this->setScope($scope);
+        $this->_callbackId = NULL;
+        $this->_userId = NULL;
+        $this->_scope = NULL;
         $this->_returnUri = NULL;
         $this->_state = NULL;
+        $this->_p = new DiContainer();
     }
 
     /**

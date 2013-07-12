@@ -88,7 +88,10 @@ resource server:
     use fkooman\OAuth\Client\Api;
 
     try { 
-        $client = new Api("SURFconext", "john", array("read"));
+        $client = new Api();
+        $client->setCallbackId("SURFconext");
+        $client->setUserId("john");
+        $client->setScope(array("read"));
         $response = $client->makeRequest("http://api.example.org/resource");
         header("Content-Type: application/json");
         echo $response->getBody();
@@ -97,7 +100,7 @@ resource server:
     }
     ?>
 
-The `callbackId` is specified in the constructor of the class, here 
+The `callbackId` is the name of the client as in the configuration, here
 `SURFconext`. 
 
 The `setUserId` method is used to bind the obtained access token to a specific 
@@ -132,7 +135,10 @@ API to obtain an access token and handle the rest in your application.
 
         use fkooman\OAuth\Client\Api;
         
-        $client = new Api("SURFconext", "john", array("read"));
+        $client = new Api();
+        $client->setCallbackId("SURFconext");
+        $client->setUserId("john");
+        $client->setScope(array("read"));
         $accessToken = $client->getAccessToken();
         if(false === $accessToken) {
             // no token available, we have to go to the authorization server
@@ -155,7 +161,6 @@ access token was revoked at the authorization server: the access token is not
 expired, but will not work. So you will have to remove the access token and
 try again.     
 
-The API provides support for this
 # Logging and Debugging
 The client has extensive logging functionality available. You can configure the
 log level in `config/config.yaml`. The log is by default written to the 
@@ -197,7 +202,10 @@ The following is an example application for Google Drive to list your files:
     use fkooman\OAuth\Client\Api;
 
     try {
-        $client = new Api("drive", "foo", array("https://www.googleapis.com/auth/drive.readonly"));
+        $client = new Api();
+        $client->setCallbackId("drive");
+        $client->setUserId("foo");
+        $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
         $client->setReturnUri("http://localhost/client.php");
         $response = $client->makeRequest("https://www.googleapis.com/drive/v2/files");
         $jsonData = $response->getBody();
