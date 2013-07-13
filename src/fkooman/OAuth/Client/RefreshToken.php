@@ -22,7 +22,7 @@ class RefreshToken extends Token
     /** refresh_token VARCHAR(255) NOT NULL */
     private $refreshToken;
 
-    public function __construct($clientConfigId, $userId, $scope, $refreshToken, $issueTime = null)
+    public function __construct($clientConfigId, $userId, $scope, $issueTime = null, $refreshToken)
     {
         parent::__construct($clientConfigId, $userId, $scope, $issueTime);
         $this->setRefreshToken($refreshToken);

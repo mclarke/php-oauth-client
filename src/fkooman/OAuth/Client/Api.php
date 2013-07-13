@@ -105,24 +105,32 @@ class Api
         if (FALSE !== $accessToken) {
             return $accessToken;
         }
+        // check if expired
+        if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
+            return false;
+        }
+
         // no valid access token, is there a refresh_token?
         $refreshToken = $this->_p['db']->getRefreshToken($this->_clientConfigId, $this->_userId, $this->_scope);
         if (FALSE !== $refreshToken) {
-            // obtain a new access token from refresh token
+            // obtain a new access token with refresh token
             $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
             $tokenResponse = $tokenRequest->withRefreshToken($refreshToken->getRefreshToken());
-            if (FALSE !== $tokenResponse) {
-                // we got a new token
-                $accessToken = new AccessToken($clientConfigId, $userId, $scope, $accessToken, $tokenType, $expiresIn = null, $issueTime = null)
-                //$accessToken = new AccessToken($this->_clientConfigId, $this->_userId, $newToken);
-                $this->_p['db']->updateAccessToken($accessToken, $newAccessToken);
-
-                return $newAccessToken;
+            if (false === $tokenResponse) {
+                return false;
             }
-        }
-        // access token invalid, and not able to get a new one with a refresh token, delete it
-        $this->_p['db']->deleteAccessToken($accessToken);
+            // we got a new token
+            $scope = (NULL !== $tokenReponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
+            $accessToken = new AccessToken($this->_clientConfigId, $this->_userId, $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
+            $this->_p['db']->storeAccessToken($accessToken);
+            if (NULL !== $tokenResponse->getRefreshToken()) {
+                $refreshToken = new RefreshToken($this->_clientConfigId, $this->_userId, $scope, time(), $tokenResponse->getRefreshTokenToken());
+                $this->_p['db']->storeRefreshToken($accessToken);
+            }
 
+            return $accessToken;
+        }
+        // no access token, and refresh token didn't work either or was not there, probably the tokens were revoked
         return FALSE;
     }
 

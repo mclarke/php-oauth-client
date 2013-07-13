@@ -28,7 +28,7 @@ class AccessToken extends Token
     /** expires_in INTEGER DEFAULT NULL */
     private $expiresIn;
 
-    public function __construct($clientConfigId, $userId, $scope, $accessToken, $tokenType, $expiresIn = null, $issueTime = null)
+    public function __construct($clientConfigId, $userId, $scope, $issueTime = null, $accessToken, $tokenType, $expiresIn = null)
     {
         parent::__construct($clientConfigId, $userId, $scope, $issueTime);
         $this->setAccessToken($accessToken);
