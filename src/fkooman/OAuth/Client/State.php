@@ -22,29 +22,29 @@ class State
     /**
      * state VARCHAR(255) NOT NULL,
      */
-    protected $_state;
+    protected $state;
 
     /**
      * client_config_id VARCHAR(255) NOT NULL,
      */
-    protected $_clientConfigId;
+    protected $clientConfigId;
 
     /**
      * user_id VARCHAR(255) NOT NULL,
      */
-    protected $_userId;
+    protected $userId;
 
     /**
      * scope VARCHAR(255) DEFAULT NULL,
      */
-    protected $_scope;
+    protected $scope;
 
     public function __construct($clientConfigId, $userId, $scope)
     {
         $this->setclientConfigId($clientConfigId);
         $this->setUserId($userId);
         $this->setScope($scope);
-        $this->setState(NULL);
+        $this->setState(null);
     }
 
     public static function fromArray(array $data)
@@ -64,27 +64,27 @@ class State
 
     public function setclientConfigId($clientConfigId)
     {
-        $this->_clientConfigId = $clientConfigId;
+        $this->clientConfigId = $clientConfigId;
     }
 
     public function getclientConfigId()
     {
-        return $this->_clientConfigId;
+        return $this->clientConfigId;
     }
 
     public function setUserId($userId)
     {
-        $this->_userId = $userId;
+        $this->userId = $userId;
     }
 
     public function getUserId()
     {
-        return $this->_userId;
+        return $this->userId;
     }
 
     public function setScope($scope)
     {
-        if (NULL !== $scope) {
+        if (null !== $scope) {
             if (!is_string($scope)) {
                 throw new AccessTokenException("scope needs to be string");
             }
@@ -95,16 +95,16 @@ class State
             if (1 !== $result) {
                 throw new AccessTokenException(sprintf("invalid scope '%s'", $scope));
             }
-            $this->_scope = self::_normalizeScope($scope);
+            $this->scope = self::normalizeScope($scope);
         }
     }
 
     public function getScope()
     {
-        return $this->_scope;
+        return $this->scope;
     }
 
-    private static function _normalizeScope($scope)
+    private static function normalizeScope($scope)
     {
         $explodedScope = explode(" ", $scope);
         sort($explodedScope, SORT_STRING);
@@ -114,16 +114,15 @@ class State
 
     public function setState($state)
     {
-        if (NULL === $state) {
-            $this->_state = bin2hex(openssl_random_pseudo_bytes(8));
+        if (null === $state) {
+            $this->state = bin2hex(openssl_random_pseudo_bytes(8));
         } else {
-            $this->_state = $state;
+            $this->state = $state;
         }
     }
 
     public function getState()
     {
-        return $this->_state;
+        return $this->state;
     }
-
 }
