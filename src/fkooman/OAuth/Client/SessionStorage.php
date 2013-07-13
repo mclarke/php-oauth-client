@@ -2,7 +2,7 @@
 
 namespace fkooman\OAuth\Client;
 
-class SessionStorage extends StorageInterface
+class SessionStorage implements StorageInterface
 {
     public function __construct()
     {

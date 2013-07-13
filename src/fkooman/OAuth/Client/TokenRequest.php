@@ -20,52 +20,12 @@ namespace fkooman\OAuth\Client;
 class TokenRequest
 {
     private $_c;
+    private $_clientConfig;
 
-    private $_tokenEndpoint;
-    private $_clientId;
-    private $_clientSecret;
-    private $_redirectUri;
-    private $_usePostCredentials;
-
-    public function __construct(\Guzzle\Http\Client $c, $tokenEndpoint, $clientId, $clientSecret)
+    public function __construct(\Guzzle\Http\Client $c, ClientConfig $clientConfig)
     {
         $this->_c = $c;
-        $this->setTokenEndpoint($tokenEndpoint);
-        $this->setClientId($clientId);
-        $this->setClientSecret($clientSecret);
-        $this->_redirectUri = NULL;
-        $this->usePostCredentials(FALSE);
-    }
-
-    public function setClientId($clientId)
-    {
-        // FIXME: validate
-        // FIXME: warn if it contains a ':'
-        $this->_clientId = $clientId;
-    }
-
-    public function setClientSecret($clientSecret)
-    {
-        // FIXME: validate
-        // FIXME: warn if it contains a ':'
-        $this->_clientSecret = $clientSecret;
-    }
-
-    public function setRedirectUri($redirectUri)
-    {
-        // FIXME: validate URL
-        $this->_redirectUri = $redirectUri;
-    }
-
-    public function usePostCredentials($boolean)
-    {
-        $this->_usePostCredentials = (bool) $boolean;
-    }
-
-    public function setTokenEndpoint($tokenEndpoint)
-    {
-        // FIXME: validate URL
-        $this->_tokenEndpoint = $tokenEndpoint;
+        $this->_clientConfig = $clientConfig;
     }
 
     public function withAuthorizationCode($authorizationCode)
@@ -74,11 +34,11 @@ class TokenRequest
             "code" => $authorizationCode,
             "grant_type" => "authorization_code"
         );
-        if (NULL !== $this->_redirectUri) {
-            $p['redirect_uri'] = $this->_redirectUri;
+        if (NULL !== $this->_clientConfig->getRedirectUri()) {
+            $p['redirect_uri'] = $this->_clientConfig->getRedirectUri();
         }
 
-        return $this->_accessTokenRequest($this->_tokenEndpoint, $p);
+        return $this->_accessTokenRequest($p);
     }
 
     public function withRefreshToken($refreshToken)
@@ -88,24 +48,24 @@ class TokenRequest
             "grant_type" => "refresh_token"
         );
 
-        return $this->_accessTokenRequest($this->_tokenEndpoint, $p);
+        return $this->_accessTokenRequest($p);
     }
 
-    private function _accessTokenRequest($tokenEndpoint, array $p)
+    private function _accessTokenRequest(array $p)
     {
-        if ($this->_usePostCredentials) {
+        if ($this->_clientConfig->getUsePostCredentials()) {
             // provide credentials in the POST body
-            $p['client_id'] = $this->_clientId;
-            $p['client_secret'] = $this->_clientSecret;
+            $p['client_id'] = $this->_clientConfig->getClientId();
+            $p['client_secret'] = $this->_clientConfig->getClientSecret();
         } else {
             // use basic authentication
-            $this->_c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->_clientId, $this->_clientSecret));
+            $this->_c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->_clientConfig->getClientId(), $this->_clientConfig->getClientSecret()));
         }
 
         try {
-            $response = $this->_c->post($tokenEndpoint)->addPostFields($p)->send();
+            $response = $this->_c->post($this->_clientConfig->getTokenEndpoint())->addPostFields($p)->send();
             // FIXME: what if no JSON?
-            return Token::fromArray($response->json());
+            return TokenResponse::fromArray($response->json());
         } catch (\Guzzle\Http\Exception\ClientErrorResponseException $e) {
             // FIXME: if authorization code request fails? What should we do then?!
             // whenever there is 4xx error, we return FALSE, if some other error

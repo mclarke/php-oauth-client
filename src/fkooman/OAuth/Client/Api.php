@@ -29,7 +29,6 @@ class Api
     private $_clientConfigId;
     private $_userId;
     private $_scope;
-    private $_storage;
 
     public function __construct()
     {
@@ -37,7 +36,6 @@ class Api
         $this->_userId = NULL;
         $this->_scope = NULL;
         $this->_state = NULL;
-        $this->_storage = NULL;
     }
 
     /**
@@ -49,7 +47,7 @@ class Api
         $this->_p = $p;
     }
 
-    public function setClient($clientConfigId, Client $c)
+    public function setClient($clientConfigId, ClientConfig $c)
     {
         $this->_clientConfigId = $clientConfigId;
         $this->_p['client'] = $c;
@@ -57,7 +55,7 @@ class Api
 
     public function setStorage(StorageInterface $storageImpl)
     {
-        $this->_storage = $storageImpl;
+        $this->_p['db'] = $storageImpl;
     }
 
     /**
@@ -105,25 +103,25 @@ class Api
         // do we have a valid access token?
         $accessToken = $this->_p['db']->getAccessToken($this->_clientConfigId, $this->_userId, $this->_scope);
         if (FALSE !== $accessToken) {
-            if ($accessToken->getIsUsable()) {
-                return $accessToken;
-            }
-            // no valid access token, is there a refresh_token?
-            if (NULL !== $accessToken->getToken()->getRefreshToken()) {
-                // obtain a new access token from refresh token
-                $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
-                $newToken = $tokenRequest->withRefreshToken($accessToken->getToken()->getRefreshToken());
-                if (FALSE !== $newToken) {
-                    // we got a new token
-                    $newAccessToken = new AccessToken($this->_clientConfigId, $this->_userId, $newToken);
-                    $this->_p['db']->updateAccessToken($accessToken, $newAccessToken);
-
-                    return $newAccessToken;
-                }
-            }
-            // access token invalid, and not able to get a new one with a refresh token, delete it
-            $this->_p['db']->deleteAccessToken($accessToken);
+            return $accessToken;
         }
+        // no valid access token, is there a refresh_token?
+        $refreshToken = $this->_p['db']->getRefreshToken($this->_clientConfigId, $this->_userId, $this->_scope);
+        if (FALSE !== $refreshToken) {
+            // obtain a new access token from refresh token
+            $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
+            $tokenResponse = $tokenRequest->withRefreshToken($refreshToken->getRefreshToken());
+            if (FALSE !== $tokenResponse) {
+                // we got a new token
+                $accessToken = new AccessToken($clientConfigId, $userId, $scope, $accessToken, $tokenType, $expiresIn = null, $issueTime = null)
+                //$accessToken = new AccessToken($this->_clientConfigId, $this->_userId, $newToken);
+                $this->_p['db']->updateAccessToken($accessToken, $newAccessToken);
+
+                return $newAccessToken;
+            }
+        }
+        // access token invalid, and not able to get a new one with a refresh token, delete it
+        $this->_p['db']->deleteAccessToken($accessToken);
 
         return FALSE;
     }
