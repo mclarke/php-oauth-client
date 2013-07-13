@@ -19,148 +19,102 @@ namespace fkooman\OAuth\Client;
 
 class Token
 {
-    /**
-     * access_token VARCHAR(255) NOT NULL,
-     */
-    protected $_accessToken;
+    /** client_config_id VARCHAR(255) NOT NULL */
+    private $clientConfigId;
 
-    /**
-     * token_type VARCHAR(255) NOT NULL,
-     */
-    protected $_tokenType;
+    /** user_id VARCHAR(255) NOT NULL */
+    private $userId;
 
-    /**
-     * expires_in INTEGER DEFAULT NULL,
-     */
-    protected $_expiresIn;
+    /** scope VARCHAR(255) NOT NULL */
+    private $scope;
 
-    /**
-     * refresh_token VARCHAR(255) NOT NULL,
-     */
-    protected $_refreshToken;
+    /** issue_time INTEGER NOT NULL */
+    private $issueTime;
 
-    /**
-     * scope VARCHAR(255) DEFAULT NULL,
-     */
-    protected $_scope;
-
-    public function __construct($accessToken = NULL, $tokenType = "bearer")
+    public function __construct($clientConfigId, $userId, $scope, $issueTime = null)
     {
-        $this->setAccessToken($accessToken);
-        $this->setTokenType($tokenType);
-        $this->setExpiresIn(NULL);
-        $this->setRefreshToken(NULL);
-        $this->setScope(NULL);
+        $this->setClientConfigId($clientConfigId);
+        $this->setUserId($userId);
+        $this->setScope($scope);
+        $this->setIssueTime($issueTime);
     }
 
     public static function fromArray(array $data)
     {
-        foreach (array('access_token', 'token_type') as $key) {
+        foreach (array('client_config_id', 'user_id', 'scope') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['access_token'], $data['token_type']);
-        if (array_key_exists('expires_in', $data)) {
-            $t->setExpiresIn($data['expires_in']);
-        }
-        if (array_key_exists('refresh_token', $data)) {
-            $t->setRefreshToken($data['refresh_token']);
-        }
-        if (array_key_exists('scope', $data)) {
-            $t->setScope($data['scope']);
+        $t = new static($data['client_config_id'], $data['user_id'], $data['scope']);
+        if (array_key_exists('issue_time', $data)) {
+            $t->setIssueTime($data['issue_time']);
         }
 
         return $t;
     }
 
-    public function setAccessToken($accessToken)
+    public function setClientConfigId($clientConfigId)
     {
-        if (!is_string($accessToken)) {
-            throw new TokenException("access_token needs to be string");
-        }
-        $this->_accessToken = $accessToken;
+        $this->clientConfigId = $clientConfigId;
     }
 
-    public function getAccessToken()
+    public function getClientConfigId()
     {
-        return $this->_accessToken;
+        return $this->clientConfigId;
     }
 
-    public function setTokenType($tokenType)
+    public function setUserId($userId)
     {
-        if (!is_string($tokenType)) {
-            throw new TokenException("token_type needs to be string");
-        }
-        if (!in_array($tokenType, array("bearer"))) {
-            throw new TokenException(sprintf("unsupported token type '%s'", $tokenType));
-        }
-        $this->_tokenType = $tokenType;
+        $this->userId = $userId;
     }
 
-    public function getTokenType()
+    public function getUserId()
     {
-        return $this->_tokenType;
-    }
-
-    public function setExpiresIn($expiresIn)
-    {
-        if (NULL !== $expiresIn) {
-            if (!is_numeric($expiresIn) && 0 > $expiresIn) {
-                throw new TokenException("expires_in should be positive integer");
-            }
-            $this->_expiresIn = (int) $expiresIn;
-        }
-    }
-
-    public function getExpiresIn()
-    {
-        return $this->_expiresIn;
-    }
-
-    public function setRefreshToken($refreshToken)
-    {
-        if (NULL !== $refreshToken) {
-            if (!is_string($refreshToken)) {
-                throw new TokenException("refresh_token needs to be string");
-            }
-            $this->_refreshToken = $refreshToken;
-        }
-    }
-
-    public function getRefreshToken()
-    {
-        return $this->_refreshToken;
+        return $this->userId;
     }
 
     public function setScope($scope)
     {
-        if (NULL !== $scope) {
-            if (!is_string($scope)) {
-                throw new TokenException("scope needs to be string");
-            }
-
-            $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
-            $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
-            $result = preg_match($scopeRegExp, $scope);
-            if (1 !== $result) {
-                throw new TokenException(sprintf("invalid scope '%s'", $scope));
-            }
-            $this->_scope = self::_normalizeScope($scope);
+        if (!is_string($scope)) {
+            throw new TokenException("scope needs to be string");
         }
+        $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
+        $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
+        $result = preg_match($scopeRegExp, $scope);
+        if (1 !== $result) {
+            throw new TokenException(sprintf("invalid scope '%s'", $scope));
+        }
+        $this->scope = self::normalizeScope($scope);
     }
 
     public function getScope()
     {
-        return $this->_scope;
+        return $this->scope;
     }
 
-    private static function _normalizeScope($scope)
+    public function setIssueTime($issueTime)
+    {
+        if (null === $issueTime) {
+            $this->issueTime = time();
+        } else {
+            if (!is_numeric($issueTime) && 0 > $issueTime) {
+                throw new TokenException("issue_time should be positive integer");
+            }
+            $this->issueTime = (int) $issueTime;
+        }
+    }
+
+    public function getIssueTime()
+    {
+        return $this->issueTime;
+    }
+
+    private static function normalizeScope($scope)
     {
         $explodedScope = explode(" ", $scope);
         sort($explodedScope, SORT_STRING);
 
         return implode(" ", array_values(array_unique($explodedScope, SORT_STRING)));
     }
-
 }

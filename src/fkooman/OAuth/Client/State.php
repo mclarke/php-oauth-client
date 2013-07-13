@@ -41,7 +41,7 @@ class State
 
     public function __construct($clientConfigId, $userId, $scope)
     {
-        $this->setclientConfigId($clientConfigId);
+        $this->setClientConfigId($clientConfigId);
         $this->setUserId($userId);
         $this->setScope($scope);
         $this->setState(null);
@@ -62,12 +62,12 @@ class State
         return $t;
     }
 
-    public function setclientConfigId($clientConfigId)
+    public function setClientConfigId($clientConfigId)
     {
         $this->clientConfigId = $clientConfigId;
     }
 
-    public function getclientConfigId()
+    public function getClientConfigId()
     {
         return $this->clientConfigId;
     }

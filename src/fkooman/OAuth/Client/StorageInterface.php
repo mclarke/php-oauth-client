@@ -4,14 +4,17 @@ namespace fkooman\OAuth\Client;
 
 interface StorageInterface
 {
-    public function getAccessToken($clientConfigId, $userId, $scope);
     public function storeAccessToken(AccessToken $accessToken);
-    public function updateAccessToken(AccessToken $accessToken, AccessToken $newAccessToken);
+    public function getAccessToken($clientConfigId, $userId, $scope);
     public function deleteAccessToken(AccessToken $accessToken);
-    public function invalidateAccessToken(AccessToken $accessToken);
-    public function getState($clientConfigId, $state);
+
+    public function storeRefreshToken(RefreshToken $refreshToken);
+    public function getRefreshToken($clientConfigId, $userId, $scope);
+    public function deleteRefreshToken(RefreshToken $refreshToken);
+
     public function storeState(State $state);
-    public function deleteExistingState($clientConfigId, $userId);
+    public function getState($clientConfigId, $state);
     public function deleteState(State $state);
+    public function deleteStateForUser($clientConfigId, $userId);
 
 }

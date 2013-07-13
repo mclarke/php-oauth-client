@@ -17,114 +17,81 @@
 
 namespace fkooman\OAuth\Client;
 
-class AccessToken
+class AccessToken extends Token
 {
-    protected $token;
+    /** access_token VARCHAR(255) NOT NULL */
+    private $accessToken;
 
-    /**
-     * client_config_id VARCHAR(255) NOT NULL,
-     */
-    protected $_clientConfigId;
+    /** token_type VARCHAR(255) NOT NULL */
+    private $tokenType;
 
-    /**
-     * user_id VARCHAR(255) NOT NULL,
-     */
-    protected $_userId;
+    /** expires_in INTEGER DEFAULT NULL */
+    private $expiresIn;
 
-    /**
-     * issue_time INTEGER NOT NULL,
-     */
-    protected $_issueTime;
-
-    /**
-     * is_usable INTEGER DEFAULT 1,
-     */
-    protected $_isUsable;
-
-    public function __construct($clientConfigId, $userId, Token $token)
+    public function __construct($clientConfigId, $userId, $scope, $accessToken, $tokenType, $expiresIn = null, $issueTime = null)
     {
-        $this->setToken($token);
-        $this->setclientConfigId($clientConfigId);
-        $this->setUserId($userId);
-        $this->setIssueTime(NULL);
-        $this->setIsUsable(TRUE);
+        parent::__construct($clientConfigId, $userId, $scope, $issueTime);
+        $this->setAccessToken($accessToken);
+        $this->setTokenType($tokenType);
+        $this->setExpiresIn($expiresIn);
     }
 
     public static function fromArray(array $data)
     {
-        foreach (array('client_config_id', 'user_id') as $key) {
+        foreach (array('client_config_id', 'user_id', 'scope', 'access_token', 'token_type') as $key) {
             if (!array_key_exists($key, $data)) {
-                throw new AccessTokenException(sprintf("missing field '%s'", $key));
+                throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $token = Token::fromArray($data);
-
-        $t = new static($data['client_config_id'], $data['user_id'], $token);
-        if (array_key_exists('issue_time', $data)) {
-            $t->setIssueTime($data['issue_time']);
-        }
-        if (array_key_exists('is_usable', $data)) {
-            $t->setIsUsable($data['is_usable']);
+        $t = new static($data['client_config_id'], $data['user_id'], $data['scope'], $data['access_token'], $data['token_type']);
+        if (array_key_exists('expires_in', $data)) {
+            $t->setExpiresIn($data['expires_in']);
         }
 
         return $t;
     }
 
-    public function setToken(Token $token)
+    public function setAccessToken($accessToken)
     {
-        $this->_token = $token;
+        if (!is_string($accessToken)) {
+            throw new TokenException("access_token needs to be string");
+        }
+        $this->accessToken = $accessToken;
     }
 
-    public function getToken()
+    public function getAccessToken()
     {
-        return $this->_token;
+        return $this->accessToken;
     }
 
-    public function setclientConfigId($clientConfigId)
+    public function setTokenType($tokenType)
     {
-        $this->_clientConfigId = $clientConfigId;
+        if (!is_string($tokenType)) {
+            throw new TokenException("token_type needs to be string");
+        }
+        if (!in_array($tokenType, array("bearer"))) {
+            throw new TokenException(sprintf("unsupported token type '%s'", $tokenType));
+        }
+        $this->tokenType = $tokenType;
     }
 
-    public function getclientConfigId()
+    public function getTokenType()
     {
-        return $this->_clientConfigId;
+        return $this->tokenType;
     }
 
-    public function setUserId($userId)
+    public function setExpiresIn($expiresIn)
     {
-        $this->_userId = $userId;
-    }
-
-    public function getUserId()
-    {
-        return $this->_userId;
-    }
-
-    public function setIssueTime($issueTime)
-    {
-        if (NULL === $issueTime) {
-            $this->_issueTime = time();
-        } else {
-            if (!is_numeric($issueTime) && 0 > $issueTime) {
-                throw new AccessTokenException("issue_time should be positive integer");
+        if (null !== $expiresIn) {
+            if (!is_numeric($expiresIn) && 0 > $expiresIn) {
+                throw new TokenException("expires_in should be positive integer");
             }
-            $this->_issueTime = (int) $issueTime;
+            $this->expiresIn = (int) $expiresIn;
         }
     }
 
-    public function getIssueTime()
+    public function getExpiresIn()
     {
-        return $this->_issueTime;
+        return $this->expiresIn;
     }
-
-    public function setIsUsable($isUsable)
-    {
-        $this->_isUsable = (bool) $isUsable;
-    }
-
-    public function getIsUsable()
-    {
-        return $this->_isUsable;
-    }
-
 }
