@@ -17,6 +17,6 @@
 
 namespace fkooman\OAuth\Client;
 
-class ClientException extends \Exception
+class ClientConfigException extends \Exception
 {
 }

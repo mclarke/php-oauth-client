@@ -2,16 +2,16 @@
 
 require_once 'vendor/autoload.php';
 
-use \fkooman\OAuth\Client\Client;
-use \fkooman\OAuth\Client\ClientException;
+use \fkooman\OAuth\Client\ClientConfig;
+use \fkooman\OAuth\Client\ClientConfigException;
 
-class ClientTest extends PHPUnit_Framework_TestCase
+class ClientConfigTest extends PHPUnit_Framework_TestCase
 {
 
     public function testSimple()
     {
         $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token");
-        $c = Client::fromArray($data);
+        $c = ClientConfig::fromArray($data);
         $this->assertEquals("foo", $c->getClientId());
         $this->assertEquals("bar", $c->getClientSecret());
         $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
@@ -23,7 +23,7 @@ class ClientTest extends PHPUnit_Framework_TestCase
     public function testLessSimple()
     {
         $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token", "redirect_uri" => "http://www.example.org/callback", "credentials_in_request_body" => TRUE);
-        $c = Client::fromArray($data);
+        $c = ClientConfig::fromArray($data);
         $this->assertEquals("foo", $c->getClientId());
         $this->assertEquals("bar", $c->getClientSecret());
         $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
@@ -38,7 +38,7 @@ class ClientTest extends PHPUnit_Framework_TestCase
      */
     public function testValidClients(array $data)
     {
-        Client::fromArray($data);
+        ClientConfig::fromArray($data);
     }
 
     /**
@@ -47,9 +47,9 @@ class ClientTest extends PHPUnit_Framework_TestCase
     public function testInvalidClients(array $data, $message)
     {
         try {
-            Client::fromArray($data);
+            ClientConfig::fromArray($data);
             $this->assertTrue(FALSE);
-        } catch (ClientException $e) {
+        } catch (ClientConfigException $e) {
             $this->assertEquals($message, $e->getMessage());
         }
     }

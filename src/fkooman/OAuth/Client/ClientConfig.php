@@ -45,7 +45,7 @@ class ClientConfig
     {
         foreach (array ('client_id', 'client_secret', 'authorize_endpoint', 'token_endpoint') as $key) {
             if (!isset($data[$key])) {
-                throw new ClientException(sprintf("missing field '%s'", $key));
+                throw new ClientConfigException(sprintf("missing field '%s'", $key));
             }
         }
 
@@ -66,7 +66,7 @@ class ClientConfig
     public function setClientId($clientId)
     {
         if (!is_string($clientId) || empty($clientId)) {
-            throw new ClientException("client_id must be non empty string");
+            throw new ClientConfigException("client_id must be non empty string");
         }
         $this->_clientId = $this->_validateBasicUserPass($clientId);
     }
@@ -80,7 +80,7 @@ class ClientConfig
     {
         if (!is_string($clientSecret)) {
             // client_secret can be empty if no password is set (NOT RECOMMENDED!)
-            throw new ClientException("client_secret must be string");
+            throw new ClientConfigException("client_secret must be string");
         }
         $this->_clientSecret = $this->_validateBasicUserPass($clientSecret);
     }
@@ -145,7 +145,7 @@ class ClientConfig
     private function _validateBasicUserPass($basicUserPass)
     {
         if (1 !== preg_match(self::REGEXP_VSCHAR, $basicUserPass)) {
-            throw new ClientException("invalid character(s) in client_id or client_secret");
+            throw new ClientConfigException("invalid character(s) in client_id or client_secret");
         }
 
         return $basicUserPass;
@@ -154,14 +154,14 @@ class ClientConfig
     private function _validateEndpointUri($endpointUri)
     {
         if (!is_string($endpointUri) || empty($endpointUri)) {
-            throw new ClientException("uri must be non empty string");
+            throw new ClientConfigException("uri must be non empty string");
         }
         if (FALSE === filter_var($endpointUri, FILTER_VALIDATE_URL)) {
-            throw new ClientException("uri must be valid URL");
+            throw new ClientConfigException("uri must be valid URL");
         }
         // not allowed to have a fragment (#) in it
         if (NULL !== parse_url($endpointUri, PHP_URL_FRAGMENT)) {
-            throw new ClientException("uri must not contain a fragment");
+            throw new ClientConfigException("uri must not contain a fragment");
         }
 
         return $endpointUri;
