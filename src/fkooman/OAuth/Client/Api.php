@@ -142,6 +142,18 @@ class Api
         return FALSE;
     }
 
+    /**
+     * Invalidate the currently available access token so on the next request
+     * a new token will be requested.
+     */
+    public function invalidateAccessToken()
+    {
+        $accessToken = $this->getAccessToken();
+        if (FALSE !== $accessToken) {
+            $this->_p['db']->invalidateAccessToken($this->getAccessToken());
+        }
+    }
+
     public function getAuthorizeUri()
     {
         // try to get a new access token
