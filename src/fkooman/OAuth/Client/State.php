@@ -25,9 +25,9 @@ class State
     protected $_state;
 
     /**
-     * callback_id VARCHAR(255) NOT NULL,
+     * client_config_id VARCHAR(255) NOT NULL,
      */
-    protected $_callbackId;
+    protected $_clientConfigId;
 
     /**
      * user_id VARCHAR(255) NOT NULL,
@@ -39,28 +39,22 @@ class State
      */
     protected $_scope;
 
-    /**
-     * return_uri TEXT NOT NULL,
-     */
-    protected $_returnUri;
-
-    public function __construct($callbackId, $userId, $scope, $returnUri)
+    public function __construct($clientConfigId, $userId, $scope)
     {
-        $this->setCallbackId($callbackId);
+        $this->setclientConfigId($clientConfigId);
         $this->setUserId($userId);
         $this->setScope($scope);
-        $this->setReturnUri($returnUri);
         $this->setState(NULL);
     }
 
     public static function fromArray(array $data)
     {
-        foreach (array('callback_id', 'user_id', 'scope', 'return_uri') as $key) {
+        foreach (array('client_config_id', 'user_id', 'scope') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new StateException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['callback_id'], $data['user_id'], $data['scope'], $data['return_uri']);
+        $t = new static($data['client_config_id'], $data['user_id'], $data['scope']);
         if (array_key_exists('state', $data)) {
             $t->setState($data['state']);
         }
@@ -68,14 +62,14 @@ class State
         return $t;
     }
 
-    public function setCallbackId($callbackId)
+    public function setclientConfigId($clientConfigId)
     {
-        $this->_callbackId = $callbackId;
+        $this->_clientConfigId = $clientConfigId;
     }
 
-    public function getCallbackId()
+    public function getclientConfigId()
     {
-        return $this->_callbackId;
+        return $this->_clientConfigId;
     }
 
     public function setUserId($userId)
@@ -116,16 +110,6 @@ class State
         sort($explodedScope, SORT_STRING);
 
         return implode(" ", array_values(array_unique($explodedScope, SORT_STRING)));
-    }
-
-    public function setReturnUri($returnUri)
-    {
-        $this->_returnUri = $returnUri;
-    }
-
-    public function getReturnUri()
-    {
-        return $this->_returnUri;
     }
 
     public function setState($state)

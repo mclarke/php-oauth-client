@@ -17,9 +17,6 @@
 
 namespace fkooman\OAuth\Client;
 
-use fkooman\Guzzle\Plugin\BearerAuth\BearerAuth;
-use fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException;
-
 /**
  * API for talking to OAuth 2.0 protected resources.
  *
@@ -29,19 +26,18 @@ class Api
 {
     private $_p;
 
-    private $_callbackId;
+    private $_clientConfigId;
     private $_userId;
     private $_scope;
-    private $_returnUri;
+    private $_storage;
 
     public function __construct()
     {
-        $this->_callbackId = NULL;
+        $this->_clientConfigId = NULL;
         $this->_userId = NULL;
         $this->_scope = NULL;
-        $this->_returnUri = NULL;
         $this->_state = NULL;
-        $this->_p = new DiContainer();
+        $this->_storage = NULL;
     }
 
     /**
@@ -53,16 +49,15 @@ class Api
         $this->_p = $p;
     }
 
-    /**
-     * Set the callback identifier
-     * @param string $callbackId
-     */
-    public function setCallbackId($callbackId)
+    public function setClient($clientConfigId, Client $c)
     {
-        $this->_callbackId = $callbackId;
+        $this->_clientConfigId = $clientConfigId;
+        $this->_p['client'] = $c;
+    }
 
-        // FIXME: also set the client... should not be here probably...
-        $this->_p['client'] = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
+    public function setStorage(StorageInterface $storageImpl)
+    {
+        $this->_storage = $storageImpl;
     }
 
     /**
@@ -101,15 +96,6 @@ class Api
     }
 
     /**
-     * Set the return URI
-     * @param string $returnUri
-     */
-    public function setReturnUri($returnUri)
-    {
-        $this->_returnUri = $returnUri;
-    }
-
-    /**
      * Obtain an access token from the OAuth 2.0 authorization server
      *
      * @return \fkooman\OAuth\Client\AccessToken|false
@@ -117,7 +103,7 @@ class Api
     public function getAccessToken()
     {
         // do we have a valid access token?
-        $accessToken = $this->_p['db']->getAccessToken($this->_callbackId, $this->_userId, $this->_scope);
+        $accessToken = $this->_p['db']->getAccessToken($this->_clientConfigId, $this->_userId, $this->_scope);
         if (FALSE !== $accessToken) {
             if ($accessToken->getIsUsable()) {
                 return $accessToken;
@@ -129,7 +115,7 @@ class Api
                 $newToken = $tokenRequest->withRefreshToken($accessToken->getToken()->getRefreshToken());
                 if (FALSE !== $newToken) {
                     // we got a new token
-                    $newAccessToken = new AccessToken($this->_callbackId, $this->_userId, $newToken);
+                    $newAccessToken = new AccessToken($this->_clientConfigId, $this->_userId, $newToken);
                     $this->_p['db']->updateAccessToken($accessToken, $newAccessToken);
 
                     return $newAccessToken;
@@ -157,8 +143,8 @@ class Api
     public function getAuthorizeUri()
     {
         // try to get a new access token
-        $this->_p['db']->deleteExistingState($this->_callbackId, $this->_userId);
-        $state = new State($this->_callbackId, $this->_userId, $this->_scope, $this->_returnUri);
+        $this->_p['db']->deleteExistingState($this->_clientConfigId, $this->_userId);
+        $state = new State($this->_clientConfigId, $this->_userId, $this->_scope);
         if (NULL !== $this->_state) {
             $state->setState($this->_state);
         }
@@ -182,39 +168,4 @@ class Api
         return $authorizeUri;
     }
 
-    public function makeRequest($requestUri, $requestMethod = "GET", $requestHeaders = array(), $postParameters = array())
-    {
-        $accessToken = $this->getAccessToken();
-        if (false === $accessToken) {
-            $authorizeUri = $this->getAuthorizeUri();
-            header("HTTP/1.1 302 Found");
-            header("Location: " . $authorizeUri);
-            exit;
-        }
-
-        try {
-            $g = new \Guzzle\Http\Client();
-            $bearerAuth = new BearerAuth($accessToken->getToken()->getAccessToken());
-            $g->addSubscriber($bearerAuth);
-
-            $request = $g->createRequest($requestMethod, $requestUri);
-            foreach ($requestHeaders as $k => $v) {
-                $request->setHeader($k, $v);
-            }
-
-            if ("POST" === $requestMethod) {
-                $request->addPostFields($postParameters);
-            }
-
-            return $request->send();
-        } catch (BearerErrorResponseException $e) {
-            if ("invalid_token" === $e->getBearerReason()) {
-                $this->_p['db']->invalidateAccessToken($accessToken);
-                // FIXME: should we try again?!!!
-                return $this->makeRequest($requestUri, $requestMethod, $requestHeaders, $postParameters);
-            }
-            // we cannot really do anything here, pass it along...
-            throw $e;
-        }
-    }
 }

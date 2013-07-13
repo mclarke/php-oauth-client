@@ -22,23 +22,25 @@ use Symfony\Component\HttpFoundation\Request;
 
 class Callback
 {
-    private $_p;
+    private $clientConfigId;
+    private $clientConfig;
+    private $storage;
 
-    public function __construct(\Pimple $p)
+    public function __construct() {}
+
+    public function setClientConfig($clientConfigId, ClientConfig $clientConfig)
     {
-        $this->_p = $p;
+        $this->clientConfigId = $clientConfigId;
+        $this->clientConfig = $clientConfig;
+    }
+
+    public function setStorage(StorageInterface $storage)
+    {
+        $this->storage = $storage;
     }
 
     public function handleCallback(Request $r)
     {
-        $callbackId = $r->get('id');
-        if (NULL === $callbackId) {
-            throw new BadRequestHttpException("callback identifier parameter missing");
-        }
-
-        // check if application is registered
-        $client = Client::fromArray($this->_p['config']->s('registration')->s($callbackId)->toArray());
-
         $qState = $r->get('state');
         $qCode = $r->get('code');
         $qError = $r->get('error');
@@ -46,12 +48,12 @@ class Callback
         if (NULL === $qState) {
             throw new BadRequestHttpException("state parameter missing");
         }
-        $state = $this->_p['db']->getState($callbackId, $qState);
+        $state = $this->storage->getState($clientConfigId, $qState);
         if (FALSE === $state) {
             throw new BadRequestHttpException("state not found");
         }
 
-        if (FALSE === $this->_p['db']->deleteState($state)) {
+        if (FALSE === $this->storage->deleteState($state)) {
             throw new BadRequestHttpException("state invalid or already used");
         }
 
@@ -63,8 +65,8 @@ class Callback
 
             $guzzle = $this->_p['http'];
 
-            $t = new TokenRequest($guzzle, $client->getTokenEndpoint(), $client->getClientId(), $client->getClientSecret());
-            $t->setRedirectUri($client->getRedirectUri());
+            $t = new TokenRequest($guzzle, $this->clientConfig->getTokenEndpoint(), $this->clientConfig->getClientId(), $this->clientConfig->getClientSecret());
+            $t->setRedirectUri($this->clientConfig->getRedirectUri());
             $token = $t->withAuthorizationCode($qCode);
             if (false === $token) {
                 // FIXME: better error, this should probably not be 500?
@@ -73,8 +75,8 @@ class Callback
             if (NULL === $token->getScope()) {
                 $token->setScope($state->getScope());
             }
-            $accessToken = new AccessToken($callbackId, $state->getUserId(), $token);
-            $this->_p['db']->storeAccessToken($accessToken);
+            $accessToken = new AccessToken($this->clientConfigId, $state->getUserId(), $token);
+            $this->storage->storeAccessToken($accessToken);
 
             return $state->getReturnUri();
         }

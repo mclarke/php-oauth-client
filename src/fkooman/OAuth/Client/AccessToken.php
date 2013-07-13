@@ -22,9 +22,9 @@ class AccessToken
     protected $token;
 
     /**
-     * callback_id VARCHAR(255) NOT NULL,
+     * client_config_id VARCHAR(255) NOT NULL,
      */
-    protected $_callbackId;
+    protected $_clientConfigId;
 
     /**
      * user_id VARCHAR(255) NOT NULL,
@@ -41,10 +41,10 @@ class AccessToken
      */
     protected $_isUsable;
 
-    public function __construct($callbackId, $userId, Token $token)
+    public function __construct($clientConfigId, $userId, Token $token)
     {
         $this->setToken($token);
-        $this->setCallbackId($callbackId);
+        $this->setclientConfigId($clientConfigId);
         $this->setUserId($userId);
         $this->setIssueTime(NULL);
         $this->setIsUsable(TRUE);
@@ -52,14 +52,14 @@ class AccessToken
 
     public static function fromArray(array $data)
     {
-        foreach (array('callback_id', 'user_id') as $key) {
+        foreach (array('client_config_id', 'user_id') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new AccessTokenException(sprintf("missing field '%s'", $key));
             }
         }
         $token = Token::fromArray($data);
 
-        $t = new static($data['callback_id'], $data['user_id'], $token);
+        $t = new static($data['client_config_id'], $data['user_id'], $token);
         if (array_key_exists('issue_time', $data)) {
             $t->setIssueTime($data['issue_time']);
         }
@@ -80,14 +80,14 @@ class AccessToken
         return $this->_token;
     }
 
-    public function setCallbackId($callbackId)
+    public function setclientConfigId($clientConfigId)
     {
-        $this->_callbackId = $callbackId;
+        $this->_clientConfigId = $clientConfigId;
     }
 
-    public function getCallbackId()
+    public function getclientConfigId()
     {
-        return $this->_callbackId;
+        return $this->_clientConfigId;
     }
 
     public function setUserId($userId)

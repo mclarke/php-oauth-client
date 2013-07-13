@@ -19,7 +19,7 @@ namespace fkooman\OAuth\Client;
 
 use \PDO as PDO;
 
-class PdoStorage
+class PdoStorage implements StorageInterface
 {
     private $_pdo;
 
@@ -28,10 +28,10 @@ class PdoStorage
         $this->_pdo = $p;
     }
 
-    public function getAccessToken($callbackId, $userId, $scope)
+    public function getAccessToken($clientConfigId, $userId, $scope)
     {
-        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_access_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND scope = :scope");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_access_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND scope = :scope");
+        $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
         $stmt->execute();
@@ -45,8 +45,8 @@ class PdoStorage
     {
         $token = $accessToken->getToken();
 
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_access_tokens (callback_id, user_id, scope, access_token, token_type, expires_in, refresh_token, issue_time, is_usable) VALUES(:callback_id, :user_id, :scope, :access_token, :token_type, :expires_in, :refresh_token, :issue_time, :is_usable)");
-        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_access_tokens (client_config_id, user_id, scope, access_token, token_type, expires_in, refresh_token, issue_time, is_usable) VALUES(:client_config_id, :user_id, :scope, :access_token, :token_type, :expires_in, :refresh_token, :issue_time, :is_usable)");
+        $stmt->bindValue(":client_config_id", $accessToken->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":scope", $token->getScope(), PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $token->getAccessToken(), PDO::PARAM_STR);
@@ -74,7 +74,7 @@ class PdoStorage
                 issue_time = :issue_time,
                 is_usable = :is_usable
             WHERE
-                callback_id = :callback_id
+                client_config_id = :client_config_id
                     AND user_id = :user_id
                     AND scope = :previous_scope
         ");
@@ -90,7 +90,7 @@ class PdoStorage
         $stmt->bindValue(":issue_time", $newAccessToken->getIssueTime(), PDO::PARAM_INT);
         $stmt->bindValue(":is_usable", $newAccessToken->getIsUsable(), PDO::PARAM_BOOL);
 
-        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":client_config_id", $accessToken->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
 
         // the scope retrieved using the refresh_token should really be the same as
@@ -104,8 +104,8 @@ class PdoStorage
 
     public function deleteAccessToken(AccessToken $accessToken)
     {
-        $stmt = $this->_pdo->prepare("DELETE FROM oauth_access_tokens WHERE callback_id = :callback_id AND user_id = :user_id AND access_token = :access_token");
-        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("DELETE FROM oauth_access_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND access_token = :access_token");
+        $stmt->bindValue(":client_config_id", $accessToken->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $accessToken->getToken()->getAccessToken(), PDO::PARAM_STR);
         $stmt->execute();
@@ -115,9 +115,9 @@ class PdoStorage
 
     public function invalidateAccessToken(AccessToken $accessToken)
     {
-        $stmt = $this->_pdo->prepare("UPDATE oauth_access_tokens SET is_usable = :is_usable WHERE callback_id = :callback_id AND user_id = :user_id AND access_token = :access_token");
+        $stmt = $this->_pdo->prepare("UPDATE oauth_access_tokens SET is_usable = :is_usable WHERE client_config_id = :client_config_id AND user_id = :user_id AND access_token = :access_token");
         $stmt->bindValue(":is_usable", FALSE, PDO::PARAM_BOOL);
-        $stmt->bindValue(":callback_id", $accessToken->getCallbackId(), PDO::PARAM_STR);
+        $stmt->bindValue(":client_config_id", $accessToken->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $accessToken->getToken()->getAccessToken(), PDO::PARAM_STR);
         $stmt->execute();
@@ -125,10 +125,10 @@ class PdoStorage
         return 1 === $stmt->rowCount();
     }
 
-    public function getState($callbackId, $state)
+    public function getState($clientConfigId, $state)
     {
-        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("SELECT * FROM oauth_states WHERE client_config_id = :client_config_id AND state = :state");
+        $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
         $stmt->bindValue(":state", $state, PDO::PARAM_STR);
         $stmt->execute();
 
@@ -139,21 +139,20 @@ class PdoStorage
 
     public function storeState(State $state)
     {
-        $stmt = $this->_pdo->prepare("INSERT INTO oauth_states (callback_id, user_id, scope, return_uri, state) VALUES(:callback_id, :user_id, :scope, :return_uri, :state)");
-        $stmt->bindValue(":callback_id", $state->getCallbackId(), PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("INSERT INTO oauth_states (client_config_id, user_id, scope, state) VALUES(:client_config_id, :user_id, :scope, :state)");
+        $stmt->bindValue(":client_config_id", $state->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $state->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":scope", $state->getScope(), PDO::PARAM_STR);
-        $stmt->bindValue(":return_uri", $state->getReturnUri(), PDO::PARAM_STR);
         $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
     }
 
-    public function deleteExistingState($callbackId, $userId)
+    public function deleteExistingState($clientConfigId, $userId)
     {
-        $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND user_id = :user_id");
-        $stmt->bindValue(":callback_id", $callbackId, PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE client_config_id = :client_config_id AND user_id = :user_id");
+        $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
         $stmt->execute();
 
@@ -162,8 +161,8 @@ class PdoStorage
 
     public function deleteState(State $state)
     {
-        $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE callback_id = :callback_id AND state = :state");
-        $stmt->bindValue(":callback_id", $state->getCallbackId(), PDO::PARAM_STR);
+        $stmt = $this->_pdo->prepare("DELETE FROM oauth_states WHERE client_config_id = :client_config_id AND state = :state");
+        $stmt->bindValue(":client_config_id", $state->getclientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 

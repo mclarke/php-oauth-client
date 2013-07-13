@@ -132,17 +132,15 @@ API to obtain an access token and handle the rest in your application.
 
     <?php
         require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
-
-        use fkooman\OAuth\Client\Api;
         
-        $client = new Api();
-        $client->setCallbackId("SURFconext");
-        $client->setUserId("john");
-        $client->setScope(array("read"));
-        $accessToken = $client->getAccessToken();
+        $api = new \fkooman\OAuth\Client\Api();
+        $api->setCallbackId("SURFconext");
+        $api->setUserId("john");
+        $api->setScope(array("read"));
+        $accessToken = $api->getAccessToken();
         if(false === $accessToken) {
             // no token available, we have to go to the authorization server
-            $authorizeUri = $client->getAuthorizeUri();
+            $authorizeUri = $api->getAuthorizeUri();
             header("HTTP/1.1 302 Found");
             header("Location: " . $authorizeUri);
             exit;
@@ -150,11 +148,26 @@ API to obtain an access token and handle the rest in your application.
         $bearerToken = $accessToken->getToken()->getAccessToken();
         // now you can use the string $bearerToken in your HTTP request as a 
         // Bearer token, for example using Guzzle:
+        try { 
+            $client = new \Guzzle\Http\Client();
+            $bearerAuth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($bearerToken);
+            $client->addSubscriber($bearerAuth);
+            $response = $client->get("https://api.example.org/resource")->send();
+            $responseBody = $response->getBody();
+            echo $responseBody;
+        } catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
+            // something was wrong with the Bearer token...
+            if("invalid_token" === $e->getBearerReason()) {
+                // invalid token, throw it away
+                $api->invalidateAccessToken();
+                // now we could try again...
+                die("the access token we had appeared valid, but wasn't. We marked it as invalid, please try again");
+            }            
+        } catch (\Guzzle\Http\Exception\BadResponseException $e) {
+            // something was wrong with the request...
+            die($e->getMessage());
+        }
 
-        $client = new \Guzzle\Http\Client('http://api.example.org');
-        $request = $client->get('/');
-        $request->setHeader("Authorization", "Bearer " . $bearerToken);
-        $response = $request->send();
         
 Please note that you will have to take care of the situation in which the 
 access token was revoked at the authorization server: the access token is not
