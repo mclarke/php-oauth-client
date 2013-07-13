@@ -17,7 +17,7 @@
 
 namespace fkooman\OAuth\Client;
 
-class Client
+class ClientConfig
 {
     // VSCHAR     = %x20-7E
     const REGEXP_VSCHAR = '/^(?:[\x20-\x7E])*$/';

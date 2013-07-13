@@ -16,12 +16,9 @@
     "name": "fkooman/php-oauth-client",
     "require": {
         "ext-openssl": "*",
-        "fkooman/guzzle-bearer-auth-plugin": "0.2.1",
         "fkooman/php-lib-config": "0.1.5",
         "guzzle/guzzle": ">=v3.7.0",
         "monolog/monolog": "1.5.0",
-        "php": ">=5.3.3",
-        "silex/silex": "v1.1.0",
-        "twig/twig": "v1.13.1"
+        "php": ">=5.3.3"
     }
 }
