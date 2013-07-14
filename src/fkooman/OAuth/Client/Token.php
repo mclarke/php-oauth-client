@@ -93,6 +93,22 @@ class Token
         return $this->scope;
     }
 
+    public function hasScope($scope)
+    {
+        if (!is_string($scope)) {
+            throw new TokenException("scope needs to be string");
+        }
+        $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
+        $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
+        $result = preg_match($scopeRegExp, $scope);
+        if (1 !== $result) {
+            throw new TokenException(sprintf("invalid scope '%s'", $scope));
+        }
+        $requestScope = self::normalizeScope($scope);
+
+        return $this->scope === $requestScope;
+    }
+
     public function setIssueTime($issueTime)
     {
         if (null === $issueTime) {

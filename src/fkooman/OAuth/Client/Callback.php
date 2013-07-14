@@ -17,9 +17,6 @@
 
 namespace fkooman\OAuth\Client;
 
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpFoundation\Request;
-
 class Callback
 {
     private $clientConfigId;
@@ -39,46 +36,56 @@ class Callback
         $this->storage = $storage;
     }
 
-    public function handleCallback(Request $r)
+    public function setHttpClient(\Guzzle\Http\Client $client)
     {
-        $qState = $r->get('state');
-        $qCode = $r->get('code');
-        $qError = $r->get('error');
+        $this->httpClient = $client;
+    }
 
-        if (NULL === $qState) {
-            throw new BadRequestHttpException("state parameter missing");
-        }
-        $state = $this->storage->getState($clientConfigId, $qState);
-        if (FALSE === $state) {
-            throw new BadRequestHttpException("state not found");
-        }
+    public function handleCallback(array $query)
+    {
+        $qState = isset($query['state']) ? $query['state'] : null;
+        $qCode = isset($query['code']) ? $query['code'] : null;
+        $qError = isset($query['error']) ? $query['error'] : null;
+        $qErrorDescription = isset($query['error_description']) ? $query['error_description'] : null;
 
-        if (FALSE === $this->storage->deleteState($state)) {
-            throw new BadRequestHttpException("state invalid or already used");
+        if (null === $qState) {
+            throw new CallbackException("state parameter missing");
         }
-
-        if (NULL === $qCode && NULL === $qError) {
-            throw new BadRequestHttpException("code or error parameter missing");
+        $state = $this->storage->getState($this->clientConfigId, $qState);
+        if (false === $state) {
+            throw new CallbackException(sprintf("state '%s' for '%s' not found", $qState, $this->clientConfigId));
         }
 
-        if (NULL !== $qCode) {
+        if (false === $this->storage->deleteState($state)) {
+            throw new CallbackException("state invalid or already used");
+        }
 
-            $guzzle = $this->_p['http'];
+        if (null === $qCode && null === $qError) {
+            throw new CallbackException("code or error parameter missing");
+        }
 
-            $t = new TokenRequest($guzzle, $this->clientConfig->getTokenEndpoint(), $this->clientConfig->getClientId(), $this->clientConfig->getClientSecret());
-            $t->setRedirectUri($this->clientConfig->getRedirectUri());
-            $token = $t->withAuthorizationCode($qCode);
-            if (false === $token) {
+        if (null !== $qCode) {
+
+            $guzzle = $this->httpClient;
+
+            $t = new TokenRequest($guzzle, $this->clientConfig);
+            $tokenResponse = $t->withAuthorizationCode($qCode);
+            if (false === $tokenResponse) {
                 // FIXME: better error, this should probably not be 500?
                 throw new CallbackException("unable to fetch token with authorization code");
             }
-            if (NULL === $token->getScope()) {
-                $token->setScope($state->getScope());
-            }
-            $accessToken = new AccessToken($this->clientConfigId, $state->getUserId(), $token);
-            $this->storage->storeAccessToken($accessToken);
 
-            return $state->getReturnUri();
+            // we got a new token
+            $scope = (NULL !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $state->getScope();
+            $accessToken = new AccessToken($this->clientConfigId, $state->getUserId(), $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
+            $this->storage->storeAccessToken($accessToken);
+            if (NULL !== $tokenResponse->getRefreshToken()) {
+                $refreshToken = new RefreshToken($this->clientConfigId, $state->getUserId(), $scope, time(), $tokenResponse->getRefreshToken());
+                $this->storage->storeRefreshToken($refreshToken);
+            }
+
+            //return $state->getReturnUri();
+            return true;
         }
 
         if (NULL !== $qError) {
@@ -89,7 +96,7 @@ class Callback
             // Probably store the error in the DB and let the client api
             // handle it...maybe continue without access if the app would still
             // work or try again, or whatever...
-            throw new CallbackException($qError . ": " . $r->get('error_description'));
+            throw new CallbackException($qError . ": " . $qErrorDescription);
         }
 
         // nothing left here...

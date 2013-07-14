@@ -53,7 +53,7 @@ class TokenRequest
 
     private function _accessTokenRequest(array $p)
     {
-        if ($this->_clientConfig->getUsePostCredentials()) {
+        if ($this->_clientConfig->getCredentialsInRequestBody()) {
             // provide credentials in the POST body
             $p['client_id'] = $this->_clientConfig->getClientId();
             $p['client_secret'] = $this->_clientConfig->getClientSecret();
@@ -63,6 +63,7 @@ class TokenRequest
         }
 
         try {
+            var_dump($p);
             $response = $this->_c->post($this->_clientConfig->getTokenEndpoint())->addPostFields($p)->send();
             // FIXME: what if no JSON?
             return TokenResponse::fromArray($response->json());

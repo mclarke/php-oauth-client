@@ -42,8 +42,7 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("access_token", $_SESSION)) {
             return false;
         }
-        // FIXME: object comparison?
-        if ($accessToken !== $_SESSION['access_token']->getAccessToken()) {
+        if ($accessToken->getAccessToken() !== $_SESSION['access_token']->getAccessToken()) {
             return false;
         }
         unset($_SESSION['access_token']);
@@ -84,8 +83,7 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("refresh_token", $_SESSION)) {
             return false;
         }
-        // FIXME: object comparison?
-        if ($refreshToken !== $_SESSION['refresh_token']->getRefreshToken()) {
+        if ($refreshToken->getRefreshToken() !== $_SESSION['refresh_token']->getRefreshToken()) {
             return false;
         }
         unset($_SESSION['refresh_token']);
@@ -96,9 +94,19 @@ class SessionStorage implements StorageInterface
     public function getState($clientConfigId, $state)
     {
         if (!array_key_exists("state", $_SESSION)) {
+            echo "no state session var";
+
             return false;
         }
-        if ($clientConfigId !== $_SESSION['state']->getClientConfigId() || $state !== $_SESSION['state']->getState()) {
+        if ($clientConfigId !== $_SESSION['state']->getClientConfigId()) {
+            echo "mismatch in configid";
+
+            return false;
+        }
+
+        if ($state !== $_SESSION['state']->getState()) {
+            echo "mismatch in state value";
+
             return false;
         }
 
@@ -108,7 +116,7 @@ class SessionStorage implements StorageInterface
     public function storeState(State $state)
     {
         if (array_key_exists("state", $_SESSION)) {
-            return false;
+            //return false;
         }
         $_SESSION['state'] = $state;
 
@@ -137,7 +145,7 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("state", $_SESSION)) {
             return false;
         }
-        if ($state !== $_SESSION['state']->getState()) {
+        if ($state->getState() !== $_SESSION['state']->getState()) {
             return false;
         }
         unset($_SESSION['state']);

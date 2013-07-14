@@ -24,38 +24,41 @@ namespace fkooman\OAuth\Client;
  */
 class Api
 {
-    private $_p;
+    private $clientConfigId;
+    private $clientConfig;
+    private $storage;
+    private $httpClient;
 
-    private $_clientConfigId;
-    private $_userId;
-    private $_scope;
+    private $userId;
+    private $scope;
+    private $state;
 
     public function __construct()
     {
-        $this->_clientConfigId = NULL;
-        $this->_userId = NULL;
-        $this->_scope = NULL;
-        $this->_state = NULL;
+        $this->clientConfigId = null;
+        $this->clientConfig = null;
+        $this->storage = null;
+        $this->httpClient = null;
+
+        $this->userId = null;
+        $this->scope = null;
+        $this->state = null;
     }
 
-    /**
-     * Set a DI container implementation
-     * @param \Pimple $p
-     */
-    public function setDiContainer(\Pimple $p)
+    public function setClientConfig($clientConfigId, ClientConfig $c)
     {
-        $this->_p = $p;
-    }
-
-    public function setClient($clientConfigId, ClientConfig $c)
-    {
-        $this->_clientConfigId = $clientConfigId;
-        $this->_p['client'] = $c;
+        $this->clientConfigId = $clientConfigId;
+        $this->clientConfig = $c;
     }
 
     public function setStorage(StorageInterface $storageImpl)
     {
-        $this->_p['db'] = $storageImpl;
+        $this->storage = $storageImpl;
+    }
+
+    public function setHttpClient(\Guzzle\Http\Client $client)
+    {
+        $this->httpClient = $client;
     }
 
     /**
@@ -64,7 +67,7 @@ class Api
      */
     public function setScope(array $scope)
     {
-        $this->_scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
+        $this->scope = implode(" ", array_values(array_unique($scope, SORT_STRING)));
     }
 
     public function setState($state)
@@ -72,7 +75,7 @@ class Api
         if (!is_string($state)) {
             throw new ApiException("state should be string");
         }
-        $this->_state = $state;
+        $this->state = $state;
     }
 
     /**
@@ -81,7 +84,7 @@ class Api
      */
     public function getScope()
     {
-        return $this->_scope;
+        return $this->scope;
     }
 
     /**
@@ -90,7 +93,7 @@ class Api
      */
     public function setUserId($userId)
     {
-        $this->_userId = $userId;
+        $this->userId = $userId;
     }
 
     /**
@@ -101,31 +104,32 @@ class Api
     public function getAccessToken()
     {
         // do we have a valid access token?
-        $accessToken = $this->_p['db']->getAccessToken($this->_clientConfigId, $this->_userId, $this->_scope);
+        $accessToken = $this->storage->getAccessToken($this->clientConfigId, $this->userId, $this->scope);
         if (FALSE !== $accessToken) {
+            // check if expired
+            if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
+                return false;
+            }
+
             return $accessToken;
-        }
-        // check if expired
-        if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
-            return false;
         }
 
         // no valid access token, is there a refresh_token?
-        $refreshToken = $this->_p['db']->getRefreshToken($this->_clientConfigId, $this->_userId, $this->_scope);
+        $refreshToken = $this->storage->getRefreshToken($this->clientConfigId, $this->userId, $this->scope);
         if (FALSE !== $refreshToken) {
             // obtain a new access token with refresh token
-            $tokenRequest = new TokenRequest($this->_p['http'], $this->_p['client']->getTokenEndpoint(), $this->_p['client']->getClientId(), $this->_p['client']->getClientSecret());
+            $tokenRequest = new TokenRequest($this->httpClient, $this->clientConfig);
             $tokenResponse = $tokenRequest->withRefreshToken($refreshToken->getRefreshToken());
             if (false === $tokenResponse) {
                 return false;
             }
             // we got a new token
-            $scope = (NULL !== $tokenReponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
-            $accessToken = new AccessToken($this->_clientConfigId, $this->_userId, $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
-            $this->_p['db']->storeAccessToken($accessToken);
+            $scope = (NULL !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
+            $accessToken = new AccessToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
+            $this->storage->storeAccessToken($accessToken);
             if (NULL !== $tokenResponse->getRefreshToken()) {
-                $refreshToken = new RefreshToken($this->_clientConfigId, $this->_userId, $scope, time(), $tokenResponse->getRefreshTokenToken());
-                $this->_p['db']->storeRefreshToken($accessToken);
+                $refreshToken = new RefreshToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getRefreshTokenToken());
+                $this->storage->storeRefreshToken($refreshToken);
             }
 
             return $accessToken;
@@ -134,42 +138,38 @@ class Api
         return FALSE;
     }
 
-    /**
-     * Invalidate the currently available access token so on the next request
-     * a new token will be requested.
-     */
-    public function invalidateAccessToken()
+    public function deleteAccessToken()
     {
         $accessToken = $this->getAccessToken();
-        if (FALSE !== $accessToken) {
-            $this->_p['db']->invalidateAccessToken($this->getAccessToken());
+        if (false !== $accessToken) {
+            $this->storage->deleteAccessToken($accessToken);
         }
     }
 
     public function getAuthorizeUri()
     {
         // try to get a new access token
-        $this->_p['db']->deleteExistingState($this->_clientConfigId, $this->_userId);
-        $state = new State($this->_clientConfigId, $this->_userId, $this->_scope);
-        if (NULL !== $this->_state) {
-            $state->setState($this->_state);
+        $this->storage->deleteStateForUser($this->clientConfigId, $this->userId);
+        $state = new State($this->clientConfigId, $this->userId, $this->scope);
+        if (NULL !== $this->state) {
+            $state->setState($this->state);
         }
-        $this->_p['db']->storeState($state);
+        $this->storage->storeState($state);
 
         $q = array (
-            "client_id" => $this->_p['client']->getClientId(),
+            "client_id" => $this->clientConfig->getClientId(),
             "response_type" => "code",
             "state" => $state->getState(),
         );
-        if (NULL !== $this->_scope) {
-            $q['scope'] = $this->_scope;
+        if (NULL !== $this->scope) {
+            $q['scope'] = $this->scope;
         }
-        if ($this->_p['client']->getRedirectUri()) {
-            $q['redirect_uri'] = $this->_p['client']->getRedirectUri();
+        if ($this->clientConfig->getRedirectUri()) {
+            $q['redirect_uri'] = $this->clientConfig->getRedirectUri();
         }
 
-        $separator = (FALSE === strpos($this->_p['client']->getAuthorizeEndpoint(), "?")) ? "?" : "&";
-        $authorizeUri = $this->_p['client']->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
+        $separator = (FALSE === strpos($this->clientConfig->getAuthorizeEndpoint(), "?")) ? "?" : "&";
+        $authorizeUri = $this->clientConfig->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
 
         return $authorizeUri;
     }
