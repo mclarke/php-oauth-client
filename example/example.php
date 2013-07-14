@@ -1,50 +1,63 @@
 <?php
 
+use fkooman\OAuth\Client\Api;
+use fkooman\OAuth\Client\ClientConfig;
+use fkooman\OAuth\Client\SessionStorage;
+use Guzzle\Http\Client;
+use Guzzle\Http\Exception\BadResponseException;
+use fkooman\Guzzle\Plugin\BearerAuth\BearerAuth;
+use fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException;
+
 require_once 'vendor/autoload.php';
 
-$api = new \fkooman\OAuth\Client\Api();
-$api->setClientConfig("foo", \fkooman\OAuth\Client\ClientConfig::fromArray(array(
+/* OAuth client configuration */
+$clientConfig = ClientConfig::fromArray(array(
     "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
     "client_id" => "foo",
     "client_secret" => "foobar",
     "token_endpoint" => "http://localhost/oauth/php-oauth/token.php",
-)));
-$api->setStorage(new \fkooman\OAuth\Client\SessionStorage());
-//$api->setStorage(new \fkooman\OAuth\Client\PdoStorage(new \PDO($dsn, $username, $pass));
-$api->setHttpClient(new \Guzzle\Http\Client());
+));
 
+/* the OAuth 2.0 protected URI */
+$apiUri = "http://localhost/oauth/php-oauth/api.php/authorizations/";
+
+/* initialize the API */
+$api = new Api();
+$api->setClientConfig("foo", $clientConfig);
+$api->setStorage(new SessionStorage());
+$api->setHttpClient(new Client());
+
+/* the user to bind the tokens to */
 $api->setUserId("john");
+
+/* the scope you want to request */
 $api->setScope(array("authorizations"));
+
+/* check if an access token is available */
 $accessToken = $api->getAccessToken();
 if (false === $accessToken) {
-    // no token available, we have to go to the authorization server
-    $authorizeUri = $api->getAuthorizeUri();
+    /* no valid access token available, go to authorization server */
     header("HTTP/1.1 302 Found");
-    header("Location: " . $authorizeUri);
+    header("Location: " . $api->getAuthorizeUri());
     exit;
 }
+
+/* we have an access token that appears valid */
 $bearerToken = $accessToken->getAccessToken();
-// now you can use the string $bearerToken in your HTTP request as a
-// Bearer token, for example using Guzzle:
 try {
-    $client = new \Guzzle\Http\Client();
-    $bearerAuth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($bearerToken);
+    $client = new Client();
+    $bearerAuth = new BearerAuth($bearerToken);
     $client->addSubscriber($bearerAuth);
-    $response = $client->get("http://localhost/oauth/php-oauth/api.php/authorizations/")->send();
-    $responseBody = $response->getBody();
+    $response = $client->get($apiUri)->send();
     header("Content-Type: application/json");
-    echo $responseBody;
-} catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
-    // something was wrong with the access token...
+    echo $response->getBody();
+} catch (BearerErrorResponseException $e) {
     if ("invalid_token" === $e->getBearerReason()) {
-        // invalid token, throw it away
+        // the token we used was invalid, possibly revoked, we throw it away
         $api->deleteAccessToken();
-        // now we could try again with a getAccessToken()...
-        die("the access token we had appeared valid, but wasn't. We marked it as invalid. Please reload page to try again");
-    } else {
-        die($e->getBearerReason());
     }
+    echo sprintf('ERROR: %s (%s)', $e->getBearerReason() , $e->getMessage());
 } catch (\Guzzle\Http\Exception\BadResponseException $e) {
-    // something was wrong with the request...
-    die($e->getMessage());
+    // something was wrong with the request, server did not accept it
+    echo sprintf('ERROR: %s', $e->getMessage());
 }
