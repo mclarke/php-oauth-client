@@ -43,10 +43,9 @@ if (false === $accessToken) {
 }
 
 /* we have an access token that appears valid */
-$bearerToken = $accessToken->getAccessToken();
 try {
     $client = new Client();
-    $bearerAuth = new BearerAuth($bearerToken);
+    $bearerAuth = new BearerAuth($accessToken);
     $client->addSubscriber($bearerAuth);
     $response = $client->get($apiUri)->send();
     header("Content-Type: application/json");

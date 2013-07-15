@@ -1,14 +1,9 @@
 # Introduction
-This project provides a full OAuth 2.0 "Authorization Code Grant" client as 
+This project provides an OAuth 2.0 "Authorization Code Grant" client as 
 described in RFC 6749, section 4.1.
 
-The client can be controlled through a simple PHP API that is used from the 
-application trying to access an OAuth 2.0 protected resource server. As an 
-application developer you don't need to worry about obtaining an access
-token and handling browser redirects: you only need to worry about calling 
-the client API and the REST API you try to access.
-
-![arch](https://github.com/fkooman/php-oauth-client/raw/master/docs/architecture.png)
+The client can be controlled through a PHP API that is used from the 
+application trying to access an OAuth 2.0 protected resource server. 
 
 # License
 Licensed under the GNU Lesser General Public License as published by the Free 
@@ -21,218 +16,122 @@ This roughly means that if you write some PHP application that uses this client
 you do not need to release your application under (L)GPL as well. Refer to the 
 license for the exact details.
 
-# Installation
-*NOTE*: in the `chown` line you need to use your own user account name!
-
-    $ cd /var/www/html
-    $ su -c 'mkdir php-oauth-client'
-    $ su -c 'chown fkooman:fkooman php-oauth-client'
-    $ git clone git://github.com/fkooman/php-oauth-client.git
-    $ cd php-oauth-client
-
-To install the required dependencies run:
-
-    $ composer install
-
-To set file permissions and setup the configuration file run:
-
-    $ sh bin/configure.sh
-
-To initialize the database run:
-
-    $ php bin/initDatabase.php
-
-# Apache Configuration
-The `configure.sh` script displays an example Apache configuration file, you 
-can put the contents that are displayed on your screen in 
-`/etc/httpd/conf.d/php-oauth-client.conf` on Fedora/RHEL/CentOS and in 
-`/etc/apache2/conf.d/php-oauth-client.conf` on Debian/Ubuntu. Don't forget to
-restart Apache.
-
-# Configuration
-Configuring the OAuth client is very easy. One modifies the `config.yaml` file 
-in the `config` directory. You can add clients here under the `registration`
-section. By default some entries are available, you still need to set the
-`client_id` and `client_secret` for those if you want to use them. Or you 
-can add your own. The example here is SURFconext:
-
-    SURFconext:
-        authorize_endpoint : 'https://api.surfconext.nl/v1/oauth2/authorize'
-        client_id          : REPLACE_ME_WITH_CLIENT_ID
-        client_secret      : REPLACE_ME_WITH_CLIENT_SECRET
-        token_endpoint     : 'https://api.surfconext.nl/v1/oauth2/token'
-        
-Here, the `callbackId`, the parameter you provide the constructor with (see 
-below), is `SURFconext`. The options under this `SURFconext` section are the 
-parameters for the registration.
-
-This `callbackId` is part of the redirect URI you need to provide during 
-registration. Assuming you installed the client at 
-`http://localhost/php-oauth-client`, the redirect URI will be:
-
-    http://localhost/php-oauth-client/callback.php?id=SURFconext
-
 # Application Integration
-If you want to integrate this OAuth client in your application you need to know
-a few things: the `callbackId` for the client you used above for your 
-application, the location of the OAuth client on your filesystem and the URL 
-and scope value you need to request. Usually this information is available 
-during the registration process.
+If you want to integrate this OAuth client in your application you need to 
+answer some questions:
 
-Below is an example of how to use the API to access an OAuth 2.0 protected 
-resource server:
+* Where am I going to store the access tokens?
+* How do I make an endpoint URL available in my application that can be used as 
+  a redirect URL for the callback
 
-    <?php
-    require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
+Next to this you need OAuth client credentials and API documentation
+to know how to use the API. You for instance need to know the 
+`authorize_endpoint`, the `token_endpoint`, the `client_id` and 
+`client_secret`.
 
-    use fkooman\OAuth\Client\Api;
+As for storing access tokens, this library includes two backends. One for 
+storing the tokens in a PDO database and one for storing them in the user 
+session. The first one requires some setup, the second one is very easy to 
+use (no configuration) but will not allow the client to access data at the 
+resource server without the session data being available. A more robust 
+implementation would use the PDO backed storage. For testing purposes or very
+simple setups the session implementation makes the most sense.
 
-    try { 
-        $client = new Api();
-        $client->setCallbackId("SURFconext");
-        $client->setUserId("john");
-        $client->setScope(array("read"));
-        $response = $client->makeRequest("http://api.example.org/resource");
+The example below will walk through all the steps you need in order to get the
+client working.
+
+Initializing the API is easy:
+
+    $api = new Api();
+
+Next you can add the client configuration to the object. You can fetch this 
+from a configuration file in your application if desired.
+
+    $clientConfig = ClientConfig::fromArray(array(
+        "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
+        "client_id" => "foo",
+        "client_secret" => "foobar",
+        "token_endpoint" => "http://localhost/oauth/php-oauth/token.php",
+    ));
+
+Add it to the API:
+
+    $api->setClientConfig("foo", $clientConfig);
+
+The first parameter specifies the name you want to give this client
+configuration. Then you can set the token storage backend:
+
+    $api->setStorage(new SessionStorage());
+
+The session storage backend has no configuration and just uses the default 
+PHP session. Now you can give Api a Guzzle Client instance. If you want
+(extensive) logging you can prepare the Guzzle object to write logs. See the
+Guzzle documentation for more information.
+
+    $api->setHttpClient(new Client());
+
+To specify the user to bind the tokens to you can set the user ID here, this
+typically is the identifier that you use for the user in your application.
+
+    $api->setUserId("john");
+
+Next is the request scope for which you want to request authorization:
+
+    $api->setScope(array("authorizations"));
+
+After this is all setup you can see if an access token you can use is available:
+
+    $accessToken = $api->getAccessToken();
+    
+This call returns `false` if no access token is available for this `user_id` 
+and `scope` and none could be obtained through the backchannel using a refresh 
+token. This means that there never was a token or it expired. The token could 
+be revoked, but we'll find that out later when trying to use it.
+
+Assuming the `getAccessToken()` call returns `false` we have to obtain 
+authorization:
+
+    if (false === $accessToken) {
+        header("HTTP/1.1 302 Found");
+        header("Location: " . $api->getAuthorizeUri());
+        exit;
+    }
+
+This is the simplest way if your application is not using any framework. 
+Usually a framework is available to do proper redirects without setting the
+HTTP headers yourself. You should use this.
+
+After this the flow of this script ends and the user is redirected to the
+authorization server. Once there the user accepts the client request and is 
+redirected back to the `redirect_uri`. You also need to put some code at this
+callback location, see below.
+
+Assuming you did have an access token, i.e.: the response from 
+`getAccessToken()` was not `false` you can now try to get the resource. This 
+example uses Guzzle as well:
+
+    $apiUrl = 'http://www.example.org/resource';
+    
+    try {
+        $client = new Client();
+        $bearerAuth = new BearerAuth($accessToken);
+        $client->addSubscriber($bearerAuth);
+        $response = $client->get($apiUri)->send();
         header("Content-Type: application/json");
         echo $response->getBody();
-    } catch (Exception $e) {
-        die($e->getMessage());
+    } catch (BearerErrorResponseException $e) {
+        if ("invalid_token" === $e->getBearerReason()) {
+            // the token we used was invalid, possibly revoked, we throw it away
+            $api->deleteAccessToken();
+        }
+        echo sprintf('ERROR: %s (%s)', $e->getBearerReason() , $e->getMessage());
+    } catch (\Guzzle\Http\Exception\BadResponseException $e) {
+        // something was wrong with the request, server did not accept it, not
+        // related to OAuth... deal with it appropriately
+        echo sprintf('ERROR: %s', $e->getMessage());
     }
-    ?>
-
-The `callbackId` is the name of the client as in the configuration, here
-`SURFconext`. 
-
-The `setUserId` method is used to bind the obtained access token to a specific 
-user. Usually the application you want to integrate OAuth support to will have 
-some user identifier, i.e.: the user needs to login to your application first 
-using user name and password or something like SAML, use that identifier here.
-
-The `setScope` method is used to determine what scope to request at the OAuth
-authorization server. The client needs to be able to request this scope, this
-may be part of the client registration.
-
-The `makeRequest` method is used to perform the actual request. It will make
-sure it has an access token with the requested scope before performing this
-request. There will be some redirects involved which will redirect the browser 
-to the OAuth "authorize" endpoint to obtain an authorization code which then
-will be exchanged for an access token.
-
-The OAuth client will by default redirect the browser back to the location from 
-which the Api was called. If you want to override the return URL your can use 
-the `setReturnUri` method as well, but usually this will not be necessary.
-
-    $client->setReturnUri("https://myapp.example.org/2012/05/11?sort=ascending");
-
-# Advanced Integration
-If you application you want to integrate OAuth 2.0 support is a little more 
-advanced you might want to take care of things like browser redirects or 
-HTTP requests to the resource server yourself. In that case you only use the 
-API to obtain an access token and handle the rest in your application.
-
-    <?php
-        require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
-        
-        $api = new \fkooman\OAuth\Client\Api();
-        $api->setCallbackId("SURFconext");
-        $api->setUserId("john");
-        $api->setScope(array("read"));
-        $accessToken = $api->getAccessToken();
-        if(false === $accessToken) {
-            // no token available, we have to go to the authorization server
-            $authorizeUri = $api->getAuthorizeUri();
-            header("HTTP/1.1 302 Found");
-            header("Location: " . $authorizeUri);
-            exit;
-        }
-        $bearerToken = $accessToken->getToken()->getAccessToken();
-        // now you can use the string $bearerToken in your HTTP request as a 
-        // Bearer token, for example using Guzzle:
-        try { 
-            $client = new \Guzzle\Http\Client();
-            $bearerAuth = new \fkooman\Guzzle\Plugin\BearerAuth\BearerAuth($bearerToken);
-            $client->addSubscriber($bearerAuth);
-            $response = $client->get("https://api.example.org/resource")->send();
-            $responseBody = $response->getBody();
-            echo $responseBody;
-        } catch (\fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException $e) {
-            // something was wrong with the Bearer token...
-            if("invalid_token" === $e->getBearerReason()) {
-                // invalid token, throw it away
-                $api->invalidateAccessToken();
-                // now we could try again...
-                die("the access token we had appeared valid, but wasn't. We marked it as invalid, please try again");
-            }            
-        } catch (\Guzzle\Http\Exception\BadResponseException $e) {
-            // something was wrong with the request...
-            die($e->getMessage());
-        }
-
-        
-Please note that you will have to take care of the situation in which the 
-access token was revoked at the authorization server: the access token is not
-expired, but will not work. So you will have to remove the access token and
-try again.     
-
-# Logging and Debugging
-The client has extensive logging functionality available. You can configure the
-log level in `config/config.yaml`. The log is by default written to the 
-`data/logs` directory. If you want to log every possible request you can set the
-following in the configuration file: `level = 100`.
-
-# Google API
-In order to be able to access the Google APIs using this client, you need to
-specify two extra fields, `credentials_in_request_body`, and set it to `true` 
-because Google [violates](https://tools.ietf.org/html/rfc6749#section-2.3.1) 
-the OAuth specification by not accepting HTTP Basic authentication on the 
-token endpoint. The other field is `redirect_uri` as it is not sufficient to
-specify this during the registration process at Google, you also need to 
-explicitly provide it during the authorization code request:
-
-    drive:
-        authorize_endpoint          : 'https://accounts.google.com/o/oauth2/auth'
-        client_id                   : REPLACE_ME_WITH_CLIENT_ID
-        client_secret               : REPLACE_ME_WITH_CLIENT_SECRET
-        credentials_in_request_body : true
-        redirect_uri                : 'http://localhost/php-oauth-client/callback.php?id=drive'
-        token_endpoint              : 'https://accounts.google.com/o/oauth2/token'
-
-The credentials can be obtained from Google's API console which can be found
-[here](https://code.google.com/apis/console/).
-
-The following is an example application for Google Drive to list your files:
-
-    <html>
-    <head>
-    <title>Google Drive File List</title>
-    </head>
-    <body>
-    <h1>Google Drive File List</h1>
-    <p>This demonstration lists the files on your Google Drive.</p>
-    <?php
-    require_once "/PATH/TO/php-oauth-client/vendor/autoload.php";
-
-    use fkooman\OAuth\Client\Api;
-
-    try {
-        $client = new Api();
-        $client->setCallbackId("drive");
-        $client->setUserId("foo");
-        $client->setScope(array("https://www.googleapis.com/auth/drive.readonly"));
-        $client->setReturnUri("http://localhost/client.php");
-        $response = $client->makeRequest("https://www.googleapis.com/drive/v2/files");
-        $jsonData = $response->getBody();
-        $data = json_decode($jsonData, TRUE);
-        foreach ($data['items'] as $i) {
-            echo "<ul>";
-            if ("drive#file" === $i['kind']) {
-                echo "<li>" . $i['title'] . "</li>";
-            }
-            echo "</ul>";
-        }
-    } catch (\fkooman\OAuth\Client\ApiException $e) {
-        echo $e->getMessage();
-    }
-    ?>
-    </body>
-    </html>
+    
+Pay special attention to the `BearerErrorResponseException` where a token is
+deleted when it turned out not to work. On the next call of the script there
+will be no access token and the user will be redirected to the authorization
+server if necessary, or not if there was still a valid `refresh_token`.

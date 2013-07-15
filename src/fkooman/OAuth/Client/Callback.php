@@ -85,7 +85,7 @@ class Callback
             }
 
             //return $state->getReturnUri();
-            return true;
+            return $accessToken;
         }
 
         if (NULL !== $qError) {
