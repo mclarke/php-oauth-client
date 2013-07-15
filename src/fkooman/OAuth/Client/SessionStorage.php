@@ -6,7 +6,10 @@ class SessionStorage implements StorageInterface
 {
     public function __construct()
     {
-        session_start();
+        if ("" === session_id()) {
+            // no session exists yet
+            session_start();
+        }
     }
 
     public function getAccessToken($clientConfigId, $userId, $scope)

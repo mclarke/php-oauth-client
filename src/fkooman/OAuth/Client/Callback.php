@@ -84,7 +84,6 @@ class Callback
                 $this->storage->storeRefreshToken($refreshToken);
             }
 
-            //return $state->getReturnUri();
             return $accessToken;
         }
 
@@ -99,6 +98,7 @@ class Callback
             throw new CallbackException($qError . ": " . $qErrorDescription);
         }
 
+        // FIXME: change flow!
         // nothing left here...
 
     }
