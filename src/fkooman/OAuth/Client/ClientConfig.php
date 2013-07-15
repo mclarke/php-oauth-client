@@ -22,13 +22,13 @@ class ClientConfig
     // VSCHAR     = %x20-7E
     const REGEXP_VSCHAR = '/^(?:[\x20-\x7E])*$/';
 
-    protected $_clientId;
-    protected $_clientSecret;
-    protected $_authorizeEndpoint;
-    protected $_tokenEndpoint;
-    protected $_redirectUri;
-    protected $_credentialsInRequestBody;
-    protected $_enableDebug;
+    protected $clientId;
+    protected $clientSecret;
+    protected $authorizeEndpoint;
+    protected $tokenEndpoint;
+    protected $redirectUri;
+    protected $credentialsInRequestBody;
+    protected $enableDebug;
 
     public function __construct($clientId, $clientSecret, $authorizeEndpoint, $tokenEndpoint)
     {
@@ -36,9 +36,9 @@ class ClientConfig
         $this->setClientSecret($clientSecret);
         $this->setAuthorizeEndpoint($authorizeEndpoint);
         $this->setTokenEndpoint($tokenEndpoint);
-        $this->setRedirectUri(NULL);
-        $this->setCredentialsInRequestBody(FALSE);
-        $this->setEnableDebug(FALSE);
+        $this->setRedirectUri(null);
+        $this->setCredentialsInRequestBody(false);
+        $this->setEnableDebug(false);
     }
 
     public static function fromArray(array $data)
@@ -68,12 +68,12 @@ class ClientConfig
         if (!is_string($clientId) || empty($clientId)) {
             throw new ClientConfigException("client_id must be non empty string");
         }
-        $this->_clientId = $this->_validateBasicUserPass($clientId);
+        $this->clientId = $this->validateBasicUserPass($clientId);
     }
 
     public function getClientId()
     {
-        return $this->_clientId;
+        return $this->clientId;
     }
 
     public function setClientSecret($clientSecret)
@@ -82,67 +82,67 @@ class ClientConfig
             // client_secret can be empty if no password is set (NOT RECOMMENDED!)
             throw new ClientConfigException("client_secret must be string");
         }
-        $this->_clientSecret = $this->_validateBasicUserPass($clientSecret);
+        $this->clientSecret = $this->validateBasicUserPass($clientSecret);
     }
 
     public function getClientSecret()
     {
-        return $this->_clientSecret;
+        return $this->clientSecret;
     }
 
     public function setAuthorizeEndpoint($authorizeEndpoint)
     {
-        $this->_authorizeEndpoint = $this->_validateEndpointUri($authorizeEndpoint);
+        $this->authorizeEndpoint = $this->validateEndpointUri($authorizeEndpoint);
     }
 
     public function getAuthorizeEndpoint()
     {
-        return $this->_authorizeEndpoint;
+        return $this->authorizeEndpoint;
     }
 
     public function setTokenEndpoint($tokenEndpoint)
     {
-        $this->_tokenEndpoint = $this->_validateEndpointUri($tokenEndpoint);
+        $this->tokenEndpoint = $this->validateEndpointUri($tokenEndpoint);
     }
 
     public function getTokenEndpoint()
     {
-        return $this->_tokenEndpoint;
+        return $this->tokenEndpoint;
     }
 
     public function setRedirectUri($redirectUri)
     {
-        if (NULL !== $redirectUri) {
-            $this->_redirectUri = $this->_validateEndpointUri($redirectUri);
+        if (null !== $redirectUri) {
+            $this->redirectUri = $this->validateEndpointUri($redirectUri);
         }
     }
 
     public function getRedirectUri()
     {
-        return $this->_redirectUri;
+        return $this->redirectUri;
     }
 
     public function setCredentialsInRequestBody($credentialsInRequestBody)
     {
-        $this->_credentialsInRequestBody = (bool) $credentialsInRequestBody;
+        $this->credentialsInRequestBody = (bool) $credentialsInRequestBody;
     }
 
     public function getCredentialsInRequestBody()
     {
-        return $this->_credentialsInRequestBody;
+        return $this->credentialsInRequestBody;
     }
 
     public function setEnableDebug($enableDebug)
     {
-        $this->_enableDebug = (bool) $enableDebug;
+        $this->enableDebug = (bool) $enableDebug;
     }
 
     public function getEnableDebug()
     {
-        return $this->_enableDebug;
+        return $this->enableDebug;
     }
 
-    private function _validateBasicUserPass($basicUserPass)
+    private function validateBasicUserPass($basicUserPass)
     {
         if (1 !== preg_match(self::REGEXP_VSCHAR, $basicUserPass)) {
             throw new ClientConfigException("invalid character(s) in client_id or client_secret");
@@ -151,20 +151,19 @@ class ClientConfig
         return $basicUserPass;
     }
 
-    private function _validateEndpointUri($endpointUri)
+    private function validateEndpointUri($endpointUri)
     {
         if (!is_string($endpointUri) || empty($endpointUri)) {
             throw new ClientConfigException("uri must be non empty string");
         }
-        if (FALSE === filter_var($endpointUri, FILTER_VALIDATE_URL)) {
+        if (false === filter_var($endpointUri, FILTER_VALIDATE_URL)) {
             throw new ClientConfigException("uri must be valid URL");
         }
         // not allowed to have a fragment (#) in it
-        if (NULL !== parse_url($endpointUri, PHP_URL_FRAGMENT)) {
+        if (null !== parse_url($endpointUri, PHP_URL_FRAGMENT)) {
             throw new ClientConfigException("uri must not contain a fragment");
         }
 
         return $endpointUri;
     }
-
 }

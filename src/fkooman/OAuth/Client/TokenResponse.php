@@ -29,9 +29,9 @@ class TokenResponse
     {
         $this->setAccessToken($accessToken);
         $this->setTokenType($tokenType);
-        $this->setExpiresIn(NULL);
-        $this->setRefreshToken(NULL);
-        $this->setScope(NULL);
+        $this->setExpiresIn(null);
+        $this->setRefreshToken(null);
+        $this->setScope(null);
     }
 
     public static function fromArray(array $data)
@@ -77,7 +77,7 @@ class TokenResponse
 
     public function setExpiresIn($expiresIn)
     {
-      $this->expiresIn = $expiresIn;
+        $this->expiresIn = $expiresIn;
     }
 
     public function getExpiresIn()

@@ -16,5 +16,4 @@ interface StorageInterface
     public function getState($clientConfigId, $state);
     public function deleteState(State $state);
     public function deleteStateForUser($clientConfigId, $userId);
-
 }

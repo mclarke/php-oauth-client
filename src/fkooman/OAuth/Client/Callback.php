@@ -23,7 +23,10 @@ class Callback
     private $clientConfig;
     private $storage;
 
-    public function __construct() {}
+    public function __construct()
+    {
+
+    }
 
     public function setClientConfig($clientConfigId, ClientConfig $clientConfig)
     {
@@ -76,10 +79,10 @@ class Callback
             }
 
             // we got a new token
-            $scope = (NULL !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $state->getScope();
+            $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $state->getScope();
             $accessToken = new AccessToken($this->clientConfigId, $state->getUserId(), $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
             $this->storage->storeAccessToken($accessToken);
-            if (NULL !== $tokenResponse->getRefreshToken()) {
+            if (null !== $tokenResponse->getRefreshToken()) {
                 $refreshToken = new RefreshToken($this->clientConfigId, $state->getUserId(), $scope, time(), $tokenResponse->getRefreshToken());
                 $this->storage->storeRefreshToken($refreshToken);
             }
@@ -87,7 +90,7 @@ class Callback
             return $accessToken;
         }
 
-        if (NULL !== $qError) {
+        if (null !== $qError) {
             // FIXME: how to get the error back to the API?! the API should be
             // informed as well I guess, or should we notify the user here
             // and stop, or just redirect back to the app?
@@ -102,5 +105,4 @@ class Callback
         // nothing left here...
 
     }
-
 }

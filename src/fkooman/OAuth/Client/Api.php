@@ -105,7 +105,7 @@ class Api
     {
         // do we have a valid access token?
         $accessToken = $this->storage->getAccessToken($this->clientConfigId, $this->userId, $this->scope);
-        if (FALSE !== $accessToken) {
+        if (false !== $accessToken) {
             // check if expired
             if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
                 return false;
@@ -116,7 +116,7 @@ class Api
 
         // no valid access token, is there a refresh_token?
         $refreshToken = $this->storage->getRefreshToken($this->clientConfigId, $this->userId, $this->scope);
-        if (FALSE !== $refreshToken) {
+        if (false !== $refreshToken) {
             // obtain a new access token with refresh token
             $tokenRequest = new TokenRequest($this->httpClient, $this->clientConfig);
             $tokenResponse = $tokenRequest->withRefreshToken($refreshToken->getRefreshToken());
@@ -124,10 +124,10 @@ class Api
                 return false;
             }
             // we got a new token
-            $scope = (NULL !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
+            $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
             $accessToken = new AccessToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
             $this->storage->storeAccessToken($accessToken);
-            if (NULL !== $tokenResponse->getRefreshToken()) {
+            if (null !== $tokenResponse->getRefreshToken()) {
                 $refreshToken = new RefreshToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getRefreshTokenToken());
                 $this->storage->storeRefreshToken($refreshToken);
             }
@@ -135,7 +135,7 @@ class Api
             return $accessToken;
         }
         // no access token, and refresh token didn't work either or was not there, probably the tokens were revoked
-        return FALSE;
+        return false;
     }
 
     public function deleteAccessToken()
@@ -151,7 +151,7 @@ class Api
         // try to get a new access token
         $this->storage->deleteStateForUser($this->clientConfigId, $this->userId);
         $state = new State($this->clientConfigId, $this->userId, $this->scope);
-        if (NULL !== $this->state) {
+        if (null !== $this->state) {
             $state->setState($this->state);
         }
         $this->storage->storeState($state);
@@ -161,17 +161,16 @@ class Api
             "response_type" => "code",
             "state" => $state->getState(),
         );
-        if (NULL !== $this->scope) {
+        if (null !== $this->scope) {
             $q['scope'] = $this->scope;
         }
         if ($this->clientConfig->getRedirectUri()) {
             $q['redirect_uri'] = $this->clientConfig->getRedirectUri();
         }
 
-        $separator = (FALSE === strpos($this->clientConfig->getAuthorizeEndpoint(), "?")) ? "?" : "&";
-        $authorizeUri = $this->clientConfig->getAuthorizeEndpoint() . $separator . http_build_query($q, NULL, '&');
+        $separator = (false === strpos($this->clientConfig->getAuthorizeEndpoint(), "?")) ? "?" : "&";
+        $authorizeUri = $this->clientConfig->getAuthorizeEndpoint() . $separator . http_build_query($q, null, '&');
 
         return $authorizeUri;
     }
-
 }

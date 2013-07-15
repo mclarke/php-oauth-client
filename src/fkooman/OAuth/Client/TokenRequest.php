@@ -19,13 +19,13 @@ namespace fkooman\OAuth\Client;
 
 class TokenRequest
 {
-    private $_c;
-    private $_clientConfig;
+    private $c;
+    private $clientConfig;
 
     public function __construct(\Guzzle\Http\Client $c, ClientConfig $clientConfig)
     {
-        $this->_c = $c;
-        $this->_clientConfig = $clientConfig;
+        $this->c = $c;
+        $this->clientConfig = $clientConfig;
     }
 
     public function withAuthorizationCode($authorizationCode)
@@ -34,11 +34,11 @@ class TokenRequest
             "code" => $authorizationCode,
             "grant_type" => "authorization_code"
         );
-        if (NULL !== $this->_clientConfig->getRedirectUri()) {
-            $p['redirect_uri'] = $this->_clientConfig->getRedirectUri();
+        if (null !== $this->clientConfig->getRedirectUri()) {
+            $p['redirect_uri'] = $this->clientConfig->getRedirectUri();
         }
 
-        return $this->_accessTokenRequest($p);
+        return $this->accessTokenRequest($p);
     }
 
     public function withRefreshToken($refreshToken)
@@ -48,22 +48,22 @@ class TokenRequest
             "grant_type" => "refresh_token"
         );
 
-        return $this->_accessTokenRequest($p);
+        return $this->accessTokenRequest($p);
     }
 
-    private function _accessTokenRequest(array $p)
+    private function accessTokenRequest(array $p)
     {
-        if ($this->_clientConfig->getCredentialsInRequestBody()) {
+        if ($this->clientConfig->getCredentialsInRequestBody()) {
             // provide credentials in the POST body
-            $p['client_id'] = $this->_clientConfig->getClientId();
-            $p['client_secret'] = $this->_clientConfig->getClientSecret();
+            $p['client_id'] = $this->clientConfig->getClientId();
+            $p['client_secret'] = $this->clientConfig->getClientSecret();
         } else {
             // use basic authentication
-            $this->_c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->_clientConfig->getClientId(), $this->_clientConfig->getClientSecret()));
+            $this->c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->clientConfig->getClientId(), $this->clientConfig->getClientSecret()));
         }
 
         try {
-            $response = $this->_c->post($this->_clientConfig->getTokenEndpoint())->addPostFields($p)->send();
+            $response = $this->c->post($this->clientConfig->getTokenEndpoint())->addPostFields($p)->send();
             // FIXME: what if no JSON?
             return TokenResponse::fromArray($response->json());
         } catch (\Guzzle\Http\Exception\ClientErrorResponseException $e) {
@@ -74,5 +74,4 @@ class TokenRequest
             return false;
         }
     }
-
 }
