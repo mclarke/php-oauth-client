@@ -125,10 +125,10 @@ class Api
             }
             // we got a new token
             $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
-            $accessToken = new AccessToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), $tokenResponse->getExpiresIn());
+            $accessToken = new AccessToken($this->clientConfigId, $this->userId, $scope, $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), time(), $tokenResponse->getExpiresIn());
             $this->storage->storeAccessToken($accessToken);
             if (null !== $tokenResponse->getRefreshToken()) {
-                $refreshToken = new RefreshToken($this->clientConfigId, $this->userId, $scope, time(), $tokenResponse->getRefreshTokenToken());
+                $refreshToken = new RefreshToken($this->clientConfigId, $this->userId, $scope, $tokenResponse->getRefreshTokenToken(), time());
                 $this->storage->storeRefreshToken($refreshToken);
             }
 
