@@ -108,6 +108,9 @@ class Api
         if (false !== $accessToken) {
             // check if expired
             if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
+                // expired, delete it
+                $this->storage->deleteAccessToken($accessToken);
+
                 return false;
             }
 
@@ -121,6 +124,9 @@ class Api
             $tokenRequest = new TokenRequest($this->httpClient, $this->clientConfig);
             $tokenResponse = $tokenRequest->withRefreshToken($refreshToken->getRefreshToken());
             if (false === $tokenResponse) {
+                // unable to fetch with RefreshToken, delete it
+                $this->storage->deleteRefreshToken($refreshToken);
+
                 return false;
             }
             // we got a new token
