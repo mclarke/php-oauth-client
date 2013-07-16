@@ -17,17 +17,19 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("access_token", $_SESSION)) {
             return false;
         }
-        if ($clientConfigId !== $_SESSION['access_token']->getClientConfigId()) {
+        $sessionAccessToken = unserialize($_SESSION['access_token']);
+
+        if ($clientConfigId !== $sessionAccessToken->getClientConfigId()) {
             return false;
         }
-        if ($userId !== $_SESSION['access_token']->getUserId()) {
+        if ($userId !== $sessionAccessToken->getUserId()) {
             return false;
         }
-        if (!$_SESSION['access_token']->hasScope($scope)) {
+        if (!$sessionAccessToken->hasScope($scope)) {
             return false;
         }
 
-        return $_SESSION['access_token'];
+        return $sessionAccessToken;
     }
 
     public function storeAccessToken(AccessToken $accessToken)
@@ -35,7 +37,7 @@ class SessionStorage implements StorageInterface
         if (array_key_exists("access_token", $_SESSION)) {
             return false;
         }
-        $_SESSION['access_token'] = $accessToken;
+        $_SESSION['access_token'] = serialize($accessToken);
 
         return true;
     }
@@ -45,7 +47,9 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("access_token", $_SESSION)) {
             return false;
         }
-        if ($accessToken->getAccessToken() !== $_SESSION['access_token']->getAccessToken()) {
+        $sessionAccessToken = unserialize($_SESSION['access_token']);
+
+        if ($accessToken->getAccessToken() !== $sessionAccessToken->getAccessToken()) {
             return false;
         }
         unset($_SESSION['access_token']);
@@ -58,17 +62,19 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("refresh_token", $_SESSION)) {
             return false;
         }
-        if ($clientConfigId !== $_SESSION['refresh_token']->getClientConfigId()) {
+        $sessionRefreshToken = unserialize($_SESSION['refresh_token']);
+
+        if ($clientConfigId !== $sessionRefreshToken->getClientConfigId()) {
             return false;
         }
-        if ($userId !== $_SESSION['refresh_token']->getUserId()) {
+        if ($userId !== $sessionRefreshToken->getUserId()) {
             return false;
         }
-        if (!$_SESSION['refresh_token']->hasScope($scope)) {
+        if (!$sessionRefreshToken->hasScope($scope)) {
             return false;
         }
 
-        return $_SESSION['refresh_token'];
+        return $sessionRefreshToken;
     }
 
     public function storeRefreshToken(RefreshToken $refreshToken)
@@ -76,7 +82,7 @@ class SessionStorage implements StorageInterface
         if (array_key_exists("refresh_token", $_SESSION)) {
             return false;
         }
-        $_SESSION['refresh_token'] = $refreshToken;
+        $_SESSION['refresh_token'] = serialize($refreshToken);
 
         return true;
     }
@@ -86,7 +92,9 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("refresh_token", $_SESSION)) {
             return false;
         }
-        if ($refreshToken->getRefreshToken() !== $_SESSION['refresh_token']->getRefreshToken()) {
+        $sessionRefreshToken = unserialize($_SESSION['refresh_token']);
+
+        if ($refreshToken->getRefreshToken() !== $sessionRefreshToken->getRefreshToken()) {
             return false;
         }
         unset($_SESSION['refresh_token']);
@@ -97,31 +105,27 @@ class SessionStorage implements StorageInterface
     public function getState($clientConfigId, $state)
     {
         if (!array_key_exists("state", $_SESSION)) {
-            echo "no state session var";
-
             return false;
         }
-        if ($clientConfigId !== $_SESSION['state']->getClientConfigId()) {
-            echo "mismatch in configid";
+        $sessionState = unserialize($_SESSION['state']);
 
-            return false;
-        }
-
-        if ($state !== $_SESSION['state']->getState()) {
-            echo "mismatch in state value";
-
+        if ($clientConfigId !== $sessionState->getClientConfigId()) {
             return false;
         }
 
-        return $_SESSION['state'];
+        if ($state !== $sessionState->getState()) {
+            return false;
+        }
+
+        return $sessionState;
     }
 
     public function storeState(State $state)
     {
         if (array_key_exists("state", $_SESSION)) {
-            //return false;
+            return false;
         }
-        $_SESSION['state'] = $state;
+        $_SESSION['state'] = serialize($state);
 
         return true;
     }
@@ -131,10 +135,12 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("state", $_SESSION)) {
             return false;
         }
-        if ($clientConfigId !== $_SESSION['state']->getClientConfigId()) {
+        $sessionState = unserialize($_SESSION['state']);
+
+        if ($clientConfigId !== $sessionState->getClientConfigId()) {
             return false;
         }
-        if ($userId !== $_SESSION['state']->getUserId()) {
+        if ($userId !== $sessionState->getUserId()) {
             return false;
         }
 
@@ -148,7 +154,9 @@ class SessionStorage implements StorageInterface
         if (!array_key_exists("state", $_SESSION)) {
             return false;
         }
-        if ($state->getState() !== $_SESSION['state']->getState()) {
+        $sessionState = unserialize($_SESSION['state']);
+
+        if ($state->getState() !== $sessionState->getState()) {
             return false;
         }
         unset($_SESSION['state']);
