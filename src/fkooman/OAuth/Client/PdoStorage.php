@@ -84,7 +84,7 @@ class PdoStorage implements StorageInterface
 
     public function storeRefreshToken(RefreshToken $refreshToken)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO refresh_tokens (client_config_id, user_id, scope, access_token, token_type, expires_in, issue_time) VALUES(:client_config_id, :user_id, :scope, :access_token, :token_type, :expires_in, :issue_time)");
+        $stmt = $this->pdo->prepare("INSERT INTO refresh_tokens (client_config_id, user_id, scope, refresh_token, issue_time) VALUES(:client_config_id, :user_id, :scope, :refresh_token, :issue_time)");
         $stmt->bindValue(":client_config_id", $refreshToken->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $refreshToken->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":scope", $refreshToken->getScope(), PDO::PARAM_STR);
