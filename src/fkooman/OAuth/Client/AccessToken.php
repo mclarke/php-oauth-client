@@ -28,7 +28,7 @@ class AccessToken extends Token
     /** expires_in INTEGER DEFAULT NULL */
     private $expiresIn;
 
-    public function __construct($clientConfigId, $userId, $scope, $issueTime = null, $accessToken, $tokenType, $expiresIn = null)
+    public function __construct($clientConfigId, $userId, $scope, $accessToken, $tokenType, $issueTime = null, $expiresIn = null)
     {
         parent::__construct($clientConfigId, $userId, $scope, $issueTime);
         $this->setAccessToken($accessToken);
@@ -44,6 +44,9 @@ class AccessToken extends Token
             }
         }
         $t = new static($data['client_config_id'], $data['user_id'], $data['scope'], $data['access_token'], $data['token_type']);
+        if (array_key_exists('issue_time', $data)) {
+            $t->setIssueTime($data['issue_time']);
+        }
         if (array_key_exists('expires_in', $data)) {
             $t->setExpiresIn($data['expires_in']);
         }

@@ -22,7 +22,7 @@ class RefreshToken extends Token
     /** refresh_token VARCHAR(255) NOT NULL */
     private $refreshToken;
 
-    public function __construct($clientConfigId, $userId, $scope, $issueTime = null, $refreshToken)
+    public function __construct($clientConfigId, $userId, $scope, $refreshToken, $issueTime = null)
     {
         parent::__construct($clientConfigId, $userId, $scope, $issueTime);
         $this->setRefreshToken($refreshToken);
@@ -36,6 +36,9 @@ class RefreshToken extends Token
             }
         }
         $t = new static($data['client_config_id'], $data['user_id'], $data['scope'], $data['refresh_token']);
+        if (array_key_exists('issue_time', $data)) {
+            $t->setIssueTime($data['issue_time']);
+        }
 
         return $t;
     }
