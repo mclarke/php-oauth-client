@@ -72,7 +72,9 @@ class AccessToken extends Token
         if (!is_string($tokenType)) {
             throw new TokenException("token_type needs to be string");
         }
-        if (!in_array($tokenType, array("bearer"))) {
+        // Google returns "Bearer" instead of "bearer", so we need to lowercase
+        // it...
+        if (!in_array(strtolower($tokenType), array("bearer"))) {
             throw new TokenException(sprintf("unsupported token type '%s'", $tokenType));
         }
         $this->tokenType = $tokenType;

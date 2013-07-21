@@ -114,7 +114,7 @@ example uses Guzzle as well:
     
     try {
         $client = new Client();
-        $bearerAuth = new BearerAuth($accessToken);
+        $bearerAuth = new BearerAuth($accessToken->getAccessToken());
         $client->addSubscriber($bearerAuth);
         $response = $client->get($apiUri)->send();
         header("Content-Type: application/json");

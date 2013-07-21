@@ -63,6 +63,32 @@ class ClientConfig
         return $c;
     }
 
+    /**
+     * From a Google "client_secrets.json" file
+     */
+    public static function fromGoogleConfig(array $data)
+    {
+        if (!isset($data['web'])) {
+            throw new ClientConfigException("no configuration 'web' found, wrong client type");
+        }
+        foreach (array ('client_id', 'client_secret', 'auth_uri', 'token_uri', 'redirect_uris') as $key) {
+            if (!isset($data['web'][$key])) {
+                throw new ClientConfigException(sprintf("missing field '%s'", $key));
+            }
+        }
+        $c = new static($data['web']['client_id'], $data['web']['client_secret'], $data['web']['auth_uri'], $data['web']['token_uri']);
+
+        // Google always wants credentials in request body...
+        $c->setCredentialsInRequestBody(true);
+
+        // Google always needs the redirect_uri to be specified...
+        // FIXME: you can register multiple redirect_uris at Google, how to
+        // choose? For now we just pick the first one...
+        $c->setRedirectUri($data['web']['redirect_uris'][0]);
+
+        return $c;
+    }
+
     public function setClientId($clientId)
     {
         if (!is_string($clientId) || empty($clientId)) {
