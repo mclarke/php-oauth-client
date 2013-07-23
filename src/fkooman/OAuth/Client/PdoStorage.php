@@ -121,10 +121,11 @@ class PdoStorage implements StorageInterface
 
     public function storeState(State $state)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO states (client_config_id, user_id, scope, state) VALUES(:client_config_id, :user_id, :scope, :state)");
-        $stmt->bindValue(":client_config_id", $state->getclientConfigId(), PDO::PARAM_STR);
+        $stmt = $this->pdo->prepare("INSERT INTO states (client_config_id, user_id, scope, issue_time, state) VALUES(:client_config_id, :user_id, :scope, :issue_time, :state)");
+        $stmt->bindValue(":client_config_id", $state->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $state->getUserId(), PDO::PARAM_STR);
         $stmt->bindValue(":scope", $state->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":issue_time", $state->getIssueTime(), PDO::PARAM_INT);
         $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 
@@ -144,7 +145,7 @@ class PdoStorage implements StorageInterface
     public function deleteState(State $state)
     {
         $stmt = $this->pdo->prepare("DELETE FROM states WHERE client_config_id = :client_config_id AND state = :state");
-        $stmt->bindValue(":client_config_id", $state->getclientConfigId(), PDO::PARAM_STR);
+        $stmt->bindValue(":client_config_id", $state->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();
 

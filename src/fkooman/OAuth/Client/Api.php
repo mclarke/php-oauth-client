@@ -182,7 +182,9 @@ class Api
         if (null !== $this->state) {
             $state->setState($this->state);
         }
-        $this->storage->storeState($state);
+        if (false === $this->storage->storeState($state)) {
+            throw new ApiException("unable to store state");
+        }
 
         $q = array (
             "client_id" => $this->clientConfig->getClientId(),

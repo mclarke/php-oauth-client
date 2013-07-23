@@ -64,9 +64,11 @@ configuration. Then you can set the token storage backend:
     $api->setStorage(new SessionStorage());
 
 The session storage backend has no configuration and just uses the default 
-PHP session. Now you can give Api a Guzzle Client instance. If you want
-(extensive) logging you can prepare the Guzzle object to write logs. See the
-Guzzle documentation for more information.
+PHP session. See below for more information on using a real database. 
+
+Now you can give Api a Guzzle Client instance. If you want (extensive) logging 
+you can prepare the Guzzle object to write logs. See the Guzzle documentation 
+for more information.
 
     $api->setHttpClient(new Client());
 
@@ -135,3 +137,19 @@ Pay special attention to the `BearerErrorResponseException` where a token is
 deleted when it turned out not to work. On the next call of the script there
 will be no access token and the user will be redirected to the authorization
 server if necessary, or not if there was still a valid `refresh_token`.
+
+# Token Storage
+You can store the tokens either in `SessionStorage` or `PdoStorage`. The first
+one is already demonstrated above and requires no further configuration, it 
+just works out of the box. 
+
+    $api->setStorage(new SessionStorage());
+
+The PDO backend requires you specifying the database you want to use:
+
+    $db = new PDO("sqlite:/path/to/db/client.sqlite");
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $api->setStorage(new PdoStorage($db));
+
+See the PHP PDO documentation on how to specify other databases.
