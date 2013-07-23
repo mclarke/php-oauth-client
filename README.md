@@ -152,4 +152,8 @@ The PDO backend requires you specifying the database you want to use:
 
     $api->setStorage(new PdoStorage($db));
 
-See the PHP PDO documentation on how to specify other databases.
+See the PHP PDO documentation on how to specify other databases. 
+
+Please note that if you use SQLite, please note that the *directory* you write 
+the file to needs to be writable to the web server as well!
+
