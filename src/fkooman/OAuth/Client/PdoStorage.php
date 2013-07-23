@@ -39,7 +39,7 @@ class PdoStorage implements StorageInterface
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return (false !== $result) ? AccessToken::fromArray($result) : false;
+        return (false !== $result) ? new AccessToken($result) : false;
     }
 
     public function storeAccessToken(AccessToken $accessToken)
@@ -79,7 +79,7 @@ class PdoStorage implements StorageInterface
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return (false !== $result) ? RefreshToken::fromArray($result) : false;
+        return (false !== $result) ? new RefreshToken($result) : false;
     }
 
     public function storeRefreshToken(RefreshToken $refreshToken)
@@ -116,7 +116,7 @@ class PdoStorage implements StorageInterface
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return (false !== $result) ? State::fromArray($result) : false;
+        return (false !== $result) ? new State($result) : false;
     }
 
     public function storeState(State $state)

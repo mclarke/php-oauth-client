@@ -19,6 +19,8 @@ namespace fkooman\OAuth\Client;
 
 class AccessToken extends Token
 {
+    const RANDOM_LENGTH = 16;
+
     /** access_token VARCHAR(255) NOT NULL */
     private $accessToken;
 
@@ -28,38 +30,32 @@ class AccessToken extends Token
     /** expires_in INTEGER DEFAULT NULL */
     private $expiresIn;
 
-    public function __construct($clientConfigId, $userId, $scope, $accessToken, $tokenType, $issueTime = null, $expiresIn = null)
+    public function __construct(array $data)
     {
-        parent::__construct($clientConfigId, $userId, $scope, $issueTime);
-        $this->setAccessToken($accessToken);
-        $this->setTokenType($tokenType);
-        $this->setExpiresIn($expiresIn);
-    }
+        parent::__construct($data);
 
-    public static function fromArray(array $data)
-    {
-        foreach (array('client_config_id', 'user_id', 'scope', 'access_token', 'token_type') as $key) {
+        foreach (array('token_type') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['client_config_id'], $data['user_id'], $data['scope'], $data['access_token'], $data['token_type']);
-        if (array_key_exists('issue_time', $data)) {
-            $t->setIssueTime($data['issue_time']);
-        }
-        if (array_key_exists('expires_in', $data)) {
-            $t->setExpiresIn($data['expires_in']);
-        }
-
-        return $t;
+        $accessToken = array_key_exists('access_token', $data) ? $data['access_token'] : null;
+        $this->setAccessToken($accessToken);
+        $this->setTokenType($data['token_type']);
+        $expiresIn = array_key_exists('expires_in', $data) ? $data['expires_in'] : null;
+        $this->setExpiresIn($expiresIn);
     }
 
     public function setAccessToken($accessToken)
     {
-        if (!is_string($accessToken)) {
-            throw new TokenException("access_token needs to be string");
+        if (null === $accessToken) {
+            $this->accessToken = bin2hex(openssl_random_pseudo_bytes(RANDOM_LENGTH));
+        } else {
+            if (!is_string($accessToken)) {
+                throw new TokenException("access_token needs to be string");
+            }
+            $this->accessToken = $accessToken;
         }
-        $this->accessToken = $accessToken;
     }
 
     public function getAccessToken()
@@ -72,8 +68,7 @@ class AccessToken extends Token
         if (!is_string($tokenType)) {
             throw new TokenException("token_type needs to be string");
         }
-        // Google returns "Bearer" instead of "bearer", so we need to lowercase
-        // it...
+        // Google uses "Bearer" instead of "bearer", so we need to lowercase it...
         if (!in_array(strtolower($tokenType), array("bearer"))) {
             throw new TokenException(sprintf("unsupported token type '%s'", $tokenType));
         }

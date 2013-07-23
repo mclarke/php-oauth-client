@@ -31,27 +31,19 @@ class Token
     /** issue_time INTEGER NOT NULL */
     private $issueTime;
 
-    public function __construct($clientConfigId, $userId, $scope, $issueTime = null)
-    {
-        $this->setClientConfigId($clientConfigId);
-        $this->setUserId($userId);
-        $this->setScope($scope);
-        $this->setIssueTime($issueTime);
-    }
-
-    public static function fromArray(array $data)
+    public function __construct(array $data)
     {
         foreach (array('client_config_id', 'user_id', 'scope') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['client_config_id'], $data['user_id'], $data['scope']);
-        if (array_key_exists('issue_time', $data)) {
-            $t->setIssueTime($data['issue_time']);
-        }
+        $t->setClientConfigId($data['client_config_id']);
+        $t->setUserId($data['user_id']);
+        $t->setScope($data['scope']);
 
-        return $t;
+        $issueTime = array_key_exists('issue_time', $data) ? $data['issue_time'] : null;
+        $t->setIssueTime($data['issue_time']);
     }
 
     public function setClientConfigId($clientConfigId)

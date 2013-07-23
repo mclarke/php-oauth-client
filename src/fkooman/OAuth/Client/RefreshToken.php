@@ -19,36 +19,29 @@ namespace fkooman\OAuth\Client;
 
 class RefreshToken extends Token
 {
+    const RANDOM_LENGTH = 16;
+
     /** refresh_token VARCHAR(255) NOT NULL */
     private $refreshToken;
 
-    public function __construct($clientConfigId, $userId, $scope, $refreshToken, $issueTime = null)
+    public function __construct(array $data)
     {
-        parent::__construct($clientConfigId, $userId, $scope, $issueTime);
+        parent::__construct($data);
+
+        $refreshToken = array_key_exists('refresh_token', $data) ? $data['refresh_token'] : null;
         $this->setRefreshToken($refreshToken);
-    }
-
-    public static function fromArray(array $data)
-    {
-        foreach (array('client_config_id', 'user_id', 'scope', 'refresh_token') as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new TokenException(sprintf("missing field '%s'", $key));
-            }
-        }
-        $t = new static($data['client_config_id'], $data['user_id'], $data['scope'], $data['refresh_token']);
-        if (array_key_exists('issue_time', $data)) {
-            $t->setIssueTime($data['issue_time']);
-        }
-
-        return $t;
     }
 
     public function setRefreshToken($refreshToken)
     {
-        if (!is_string($refreshToken)) {
-            throw new TokenException("refresh_token needs to be string");
+        if (null === $refreshToken) {
+            $this->refreshToken = bin2hex(openssl_random_pseudo_bytes(RANDOM_LENGTH));
+        } else {
+            if (!is_string($refreshToken)) {
+                throw new TokenException("refresh_token needs to be string");
+            }
+            $this->refreshToken = $refreshToken;
         }
-        $this->refreshToken = $refreshToken;
     }
 
     public function getRefreshToken()

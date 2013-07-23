@@ -131,10 +131,24 @@ class Api
             }
             // we got a new token
             $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $this->scope;
-            $accessToken = new AccessToken($this->clientConfigId, $this->userId, $scope, $tokenResponse->getAccessToken(), $tokenResponse->getTokenType(), time(), $tokenResponse->getExpiresIn());
+            $accessToken = new AccessToken(array(
+                "client_config_id" => $this->clientConfigId,
+                "user_id" => $this->userId,
+                "scope" => $scope,
+                "access_token" => $tokenResponse->getAccessToken(),
+                "token_type" => $tokenResponse->getTokenType(),
+                "issue_time" => time(),
+                "expires_in" => $tokenResponse->getExpiresIn()
+            ));
             $this->storage->storeAccessToken($accessToken);
             if (null !== $tokenResponse->getRefreshToken()) {
-                $refreshToken = new RefreshToken($this->clientConfigId, $this->userId, $scope, $tokenResponse->getRefreshTokenToken(), time());
+                $refreshToken = new RefreshToken(
+                    "client_config_id" => $this->clientConfigId,
+                    "user_id" => $this->userId,
+                    "scope" => $scope,
+                    "refresh_token" => $tokenResponse->getRefreshTokenToken(),
+                    "issue_time" => time()
+                ));
                 $this->storage->storeRefreshToken($refreshToken);
             }
 
@@ -156,7 +170,11 @@ class Api
     {
         // try to get a new access token
         $this->storage->deleteStateForUser($this->clientConfigId, $this->userId);
-        $state = new State($this->clientConfigId, $this->userId, $this->scope);
+        $state = new State(array(
+            "client_config_id" => $this->clientConfigId,
+            "user_id" => $this->userId,
+            "scope" => $this->scope
+        ));
         if (null !== $this->state) {
             $state->setState($this->state);
         }
