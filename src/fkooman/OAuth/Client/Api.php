@@ -24,6 +24,8 @@ namespace fkooman\OAuth\Client;
  */
 class Api
 {
+    const RANDOM_LENGTH = 8;
+
     private $clientConfigId;
     private $clientConfig;
     private $storage;
@@ -142,7 +144,7 @@ class Api
             ));
             $this->storage->storeAccessToken($accessToken);
             if (null !== $tokenResponse->getRefreshToken()) {
-                $refreshToken = new RefreshToken(
+                $refreshToken = new RefreshToken(array(
                     "client_config_id" => $this->clientConfigId,
                     "user_id" => $this->userId,
                     "scope" => $scope,
@@ -173,7 +175,9 @@ class Api
         $state = new State(array(
             "client_config_id" => $this->clientConfigId,
             "user_id" => $this->userId,
-            "scope" => $this->scope
+            "scope" => $this->scope,
+            "issue_time" => time(),
+            "state" => bin2hex(openssl_random_pseudo_bytes(self::RANDOM_LENGTH))
         ));
         if (null !== $this->state) {
             $state->setState($this->state);

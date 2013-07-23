@@ -33,21 +33,22 @@ class Token
 
     public function __construct(array $data)
     {
-        foreach (array('client_config_id', 'user_id', 'scope') as $key) {
+        foreach (array('client_config_id', 'user_id', 'scope', 'issue_time') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $t->setClientConfigId($data['client_config_id']);
-        $t->setUserId($data['user_id']);
-        $t->setScope($data['scope']);
-
-        $issueTime = array_key_exists('issue_time', $data) ? $data['issue_time'] : null;
-        $t->setIssueTime($data['issue_time']);
+        $this->setClientConfigId($data['client_config_id']);
+        $this->setUserId($data['user_id']);
+        $this->setScope($data['scope']);
+        $this->setIssueTime($data['issue_time']);
     }
 
     public function setClientConfigId($clientConfigId)
     {
+        if (!is_string($clientConfigId) || 0 >= strlen($clientConfigId)) {
+            throw new TokenException("client_config_id needs to be a non-empty string");
+        }
         $this->clientConfigId = $clientConfigId;
     }
 
@@ -58,6 +59,9 @@ class Token
 
     public function setUserId($userId)
     {
+        if (!is_string($userId) || 0 >= strlen($userId)) {
+            throw new TokenException("client_config_id needs to be a non-empty string");
+        }
         $this->userId = $userId;
     }
 
@@ -71,12 +75,7 @@ class Token
         if (!is_string($scope)) {
             throw new TokenException("scope needs to be string");
         }
-        $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
-        $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
-        $result = preg_match($scopeRegExp, $scope);
-        if (1 !== $result) {
-            throw new TokenException(sprintf("invalid scope '%s'", $scope));
-        }
+        self::validateScope($scope);
         $this->scope = self::normalizeScope($scope);
     }
 
@@ -90,12 +89,7 @@ class Token
         if (!is_string($scope)) {
             throw new TokenException("scope needs to be string");
         }
-        $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
-        $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
-        $result = preg_match($scopeRegExp, $scope);
-        if (1 !== $result) {
-            throw new TokenException(sprintf("invalid scope '%s'", $scope));
-        }
+        self::validateScope($scope);
         $requestScope = self::normalizeScope($scope);
 
         return $this->scope === $requestScope;
@@ -103,14 +97,11 @@ class Token
 
     public function setIssueTime($issueTime)
     {
-        if (null === $issueTime) {
-            $this->issueTime = time();
-        } else {
-            if (!is_numeric($issueTime) && 0 > $issueTime) {
-                throw new TokenException("issue_time should be positive integer");
-            }
-            $this->issueTime = (int) $issueTime;
+        if (!is_numeric($issueTime) || 0 >= $issueTime) {
+            throw new TokenException("issue_time should be positive integer");
         }
+        $this->issueTime = (int) $issueTime;
+
     }
 
     public function getIssueTime()
@@ -118,7 +109,17 @@ class Token
         return $this->issueTime;
     }
 
-    private static function normalizeScope($scope)
+    private static function validateScope($scope)
+    {
+        $scopeTokenRegExp = '(?:\x21|[\x23-\x5B]|[\x5D-\x7E])+';
+        $scopeRegExp = sprintf('/^%s(?: %s)*$/', $scopeTokenRegExp, $scopeTokenRegExp);
+        $result = preg_match($scopeRegExp, $scope);
+        if (1 !== $result) {
+            throw new TokenException(sprintf("invalid scope '%s'", $scope));
+        }
+    }
+
+    private function normalizeScope($scope)
     {
         $explodedScope = explode(" ", $scope);
         sort($explodedScope, SORT_STRING);

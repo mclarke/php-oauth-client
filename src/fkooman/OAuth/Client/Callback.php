@@ -95,7 +95,7 @@ class Callback
                     "client_config_id" => $this->clientConfigId,
                     "user_id" => $state->getUserId(),
                     "scope" => $scope,
-                    "refresh_token" => $tokenResponse->getRefreshToken()
+                    "refresh_token" => $tokenResponse->getRefreshToken(),
                     "issue_time" => time()
                 ));
                 $this->storage->storeRefreshToken($refreshToken);

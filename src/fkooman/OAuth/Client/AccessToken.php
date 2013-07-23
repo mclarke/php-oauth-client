@@ -19,8 +19,6 @@ namespace fkooman\OAuth\Client;
 
 class AccessToken extends Token
 {
-    const RANDOM_LENGTH = 16;
-
     /** access_token VARCHAR(255) NOT NULL */
     private $accessToken;
 
@@ -34,13 +32,12 @@ class AccessToken extends Token
     {
         parent::__construct($data);
 
-        foreach (array('token_type') as $key) {
+        foreach (array('token_type', 'access_token') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenException(sprintf("missing field '%s'", $key));
             }
         }
-        $accessToken = array_key_exists('access_token', $data) ? $data['access_token'] : null;
-        $this->setAccessToken($accessToken);
+        $this->setAccessToken($data['access_token']);
         $this->setTokenType($data['token_type']);
         $expiresIn = array_key_exists('expires_in', $data) ? $data['expires_in'] : null;
         $this->setExpiresIn($expiresIn);
@@ -48,14 +45,10 @@ class AccessToken extends Token
 
     public function setAccessToken($accessToken)
     {
-        if (null === $accessToken) {
-            $this->accessToken = bin2hex(openssl_random_pseudo_bytes(RANDOM_LENGTH));
-        } else {
-            if (!is_string($accessToken)) {
-                throw new TokenException("access_token needs to be string");
-            }
-            $this->accessToken = $accessToken;
+        if (!is_string($accessToken) || 0 >= strlen($accessToken)) {
+            throw new TokenException("access_token needs to be a non-empty string");
         }
+        $this->accessToken = $accessToken;
     }
 
     public function getAccessToken()
@@ -65,8 +58,8 @@ class AccessToken extends Token
 
     public function setTokenType($tokenType)
     {
-        if (!is_string($tokenType)) {
-            throw new TokenException("token_type needs to be string");
+        if (!is_string($tokenType) || 0 >= strlen($tokenType)) {
+            throw new TokenException("token_type needs to be a non-empty string");
         }
         // Google uses "Bearer" instead of "bearer", so we need to lowercase it...
         if (!in_array(strtolower($tokenType), array("bearer"))) {
@@ -83,11 +76,12 @@ class AccessToken extends Token
     public function setExpiresIn($expiresIn)
     {
         if (null !== $expiresIn) {
-            if (!is_numeric($expiresIn) && 0 > $expiresIn) {
-                throw new TokenException("expires_in should be positive integer");
+            if (!is_numeric($expiresIn) || 0 >= $expiresIn) {
+                throw new TokenException("expires_in should be positive integer or null");
             }
-            $this->expiresIn = (int) $expiresIn;
+            $expiresIn = (int) $expiresIn;
         }
+        $this->expiresIn = $expiresIn;
     }
 
     public function getExpiresIn()

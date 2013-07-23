@@ -19,25 +19,28 @@ namespace fkooman\OAuth\Client;
 
 class State extends Token
 {
-    const RANDOM_LENGTH = 8;
-
     /** state VARCHAR(255) NOT NULL */
     protected $state;
 
     public function __construct(array $data)
     {
         parent::__construct($data);
-        $state = array_key_exists('state', $data) ? $data['state'] : null;
-        $this->setState($state);
+
+        foreach (array('state') as $key) {
+            if (!array_key_exists($key, $data)) {
+                throw new TokenException(sprintf("missing field '%s'", $key));
+            }
+        }
+
+        $this->setState($data['state']);
     }
 
     public function setState($state)
     {
-        if (null === $state) {
-            $this->state = bin2hex(openssl_random_pseudo_bytes(RANDOM_LENGTH));
-        } else {
-            $this->state = $state;
+        if (!is_string($state) || 0 >= strlen($state)) {
+            throw new TokenException("state needs to be a non-empty string");
         }
+        $this->state = $state;
     }
 
     public function getState()

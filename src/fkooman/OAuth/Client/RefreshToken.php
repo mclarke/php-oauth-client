@@ -19,8 +19,6 @@ namespace fkooman\OAuth\Client;
 
 class RefreshToken extends Token
 {
-    const RANDOM_LENGTH = 16;
-
     /** refresh_token VARCHAR(255) NOT NULL */
     private $refreshToken;
 
@@ -28,20 +26,21 @@ class RefreshToken extends Token
     {
         parent::__construct($data);
 
-        $refreshToken = array_key_exists('refresh_token', $data) ? $data['refresh_token'] : null;
-        $this->setRefreshToken($refreshToken);
+        foreach (array('refresh_token') as $key) {
+            if (!array_key_exists($key, $data)) {
+                throw new TokenException(sprintf("missing field '%s'", $key));
+            }
+        }
+
+        $this->setRefreshToken($data['refresh_token']);
     }
 
     public function setRefreshToken($refreshToken)
     {
-        if (null === $refreshToken) {
-            $this->refreshToken = bin2hex(openssl_random_pseudo_bytes(RANDOM_LENGTH));
-        } else {
-            if (!is_string($refreshToken)) {
-                throw new TokenException("refresh_token needs to be string");
-            }
-            $this->refreshToken = $refreshToken;
+        if (!is_string($refreshToken) || 0 >= strlen($refreshToken)) {
+            throw new TokenException("refresh_token needs to be a non-empty string");
         }
+        $this->refreshToken = $refreshToken;
     }
 
     public function getRefreshToken()
