@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+use Guzzle\Plugin\CurlAuth\CurlAuthPlugin;
+
 namespace fkooman\OAuth\Client;
 
 class TokenRequest
@@ -59,7 +61,8 @@ class TokenRequest
             $p['client_secret'] = $this->clientConfig->getClientSecret();
         } else {
             // use basic authentication
-            $this->c->addSubscriber(new \Guzzle\Plugin\CurlAuth\CurlAuthPlugin($this->clientConfig->getClientId(), $this->clientConfig->getClientSecret()));
+            $curlAuth = CurlAuthPlugin($this->clientConfig->getClientId(), $this->clientConfig->getClientSecret()));
+            $this->c->addSubscriber($curlAuth);
         }
 
         try {

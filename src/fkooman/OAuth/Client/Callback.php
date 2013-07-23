@@ -80,24 +80,28 @@ class Callback
 
             // we got a new token
             $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $state->getScope();
-            $accessToken = new AccessToken(array(
-                "client_config_id" => $this->clientConfigId,
-                "user_id" => $state->getUserId(),
-                "scope" => $scope,
-                "access_token" => $tokenResponse->getAccessToken(),
-                "token_type" => $tokenResponse->getTokenType(),
-                "issue_time" => time(),
-                "expires_in" => $tokenResponse->getExpiresIn()
-            ));
-            $this->storage->storeAccessToken($accessToken);
-            if (null !== $tokenResponse->getRefreshToken()) {
-                $refreshToken = new RefreshToken(array(
+            $accessToken = new AccessToken(
+                array(
                     "client_config_id" => $this->clientConfigId,
                     "user_id" => $state->getUserId(),
                     "scope" => $scope,
-                    "refresh_token" => $tokenResponse->getRefreshToken(),
-                    "issue_time" => time()
-                ));
+                    "access_token" => $tokenResponse->getAccessToken(),
+                    "token_type" => $tokenResponse->getTokenType(),
+                    "issue_time" => time(),
+                    "expires_in" => $tokenResponse->getExpiresIn()
+                )
+            );
+            $this->storage->storeAccessToken($accessToken);
+            if (null !== $tokenResponse->getRefreshToken()) {
+                $refreshToken = new RefreshToken(
+                    array(
+                        "client_config_id" => $this->clientConfigId,
+                        "user_id" => $state->getUserId(),
+                        "scope" => $scope,
+                        "refresh_token" => $tokenResponse->getRefreshToken(),
+                        "issue_time" => time()
+                    )
+                );
                 $this->storage->storeRefreshToken($refreshToken);
             }
 
