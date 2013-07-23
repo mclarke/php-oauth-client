@@ -7,160 +7,190 @@ class SessionStorage implements StorageInterface
     public function __construct()
     {
         if ("" === session_id()) {
-            // no session exists yet
+            // no session currently exists, start a new one
             session_start();
         }
     }
 
     public function getAccessToken($clientConfigId, $userId, $scope)
     {
-        if (!array_key_exists("access_token", $_SESSION)) {
-            return false;
-        }
-        $sessionAccessToken = unserialize($_SESSION['access_token']);
-
-        if ($clientConfigId !== $sessionAccessToken->getClientConfigId()) {
-            return false;
-        }
-        if ($userId !== $sessionAccessToken->getUserId()) {
-            return false;
-        }
-        if (!$sessionAccessToken->hasScope($scope)) {
+        if (!isset($_SESSION['php-oauth-client']['access_token'])) {
             return false;
         }
 
-        return $sessionAccessToken;
+        foreach ($_SESSION['php-oauth-client']['access_token'] as $t) {
+            $token = unserialize($t);
+            if ($clientConfigId !== $token->getClientConfigId()) {
+                continue;
+            }
+            if ($userId !== $token->getUserId()) {
+                continue;
+            }
+            if (!$token->hasScope($scope)) {
+                continue;
+            }
+
+            return $token;
+        }
+
+        return false;
     }
 
     public function storeAccessToken(AccessToken $accessToken)
     {
-        if (array_key_exists("access_token", $_SESSION)) {
-            return false;
+        if (!isset($_SESSION['php-oauth-client']['access_token'])) {
+            $_SESSION['php-oauth-client']['access_token'] = array();
         }
-        $_SESSION['access_token'] = serialize($accessToken);
+
+        array_push($_SESSION['php-oauth-client']['access_token'], serialize($accessToken));
 
         return true;
     }
 
     public function deleteAccessToken(AccessToken $accessToken)
     {
-        if (!array_key_exists("access_token", $_SESSION)) {
+        if (!isset($_SESSION['php-oauth-client']['access_token'])) {
             return false;
         }
-        $sessionAccessToken = unserialize($_SESSION['access_token']);
 
-        if ($accessToken->getAccessToken() !== $sessionAccessToken->getAccessToken()) {
-            return false;
+        foreach ($_SESSION['php-oauth-client']['access_token'] as $k => $t) {
+            $token = unserialize($t);
+            if ($accessToken->getAccessToken() !== $token->getAccessToken()) {
+                continue;
+            }
+            unset($_SESSION['php-oauth-client']['access_token'][$k]);
+
+            return true;
         }
-        unset($_SESSION['access_token']);
 
-        return true;
+        return false;
     }
 
     public function getRefreshToken($clientConfigId, $userId, $scope)
     {
-        if (!array_key_exists("refresh_token", $_SESSION)) {
-            return false;
-        }
-        $sessionRefreshToken = unserialize($_SESSION['refresh_token']);
-
-        if ($clientConfigId !== $sessionRefreshToken->getClientConfigId()) {
-            return false;
-        }
-        if ($userId !== $sessionRefreshToken->getUserId()) {
-            return false;
-        }
-        if (!$sessionRefreshToken->hasScope($scope)) {
+        if (!isset($_SESSION['php-oauth-client']['refresh_token'])) {
             return false;
         }
 
-        return $sessionRefreshToken;
+        foreach ($_SESSION['php-oauth-client']['refresh_token'] as $t) {
+            $token = unserialize($t);
+            if ($clientConfigId !== $token->getClientConfigId()) {
+                continue;
+            }
+            if ($userId !== $token->getUserId()) {
+                continue;
+            }
+            if (!$token->hasScope($scope)) {
+                continue;
+            }
+
+            return $token;
+        }
+
+        return false;
     }
 
     public function storeRefreshToken(RefreshToken $refreshToken)
     {
-        if (array_key_exists("refresh_token", $_SESSION)) {
-            return false;
+        if (!isset($_SESSION['php-oauth-client']['refresh_token'])) {
+            $_SESSION['php-oauth-client']['refresh_token'] = array();
         }
-        $_SESSION['refresh_token'] = serialize($refreshToken);
+
+        array_push($_SESSION['php-oauth-client']['refresh_token'], serialize($refreshToken));
 
         return true;
     }
 
     public function deleteRefreshToken(RefreshToken $refreshToken)
     {
-        if (!array_key_exists("refresh_token", $_SESSION)) {
+        if (!isset($_SESSION['php-oauth-client']['refresh_token'])) {
             return false;
         }
-        $sessionRefreshToken = unserialize($_SESSION['refresh_token']);
 
-        if ($refreshToken->getRefreshToken() !== $sessionRefreshToken->getRefreshToken()) {
-            return false;
+        foreach ($_SESSION['php-oauth-client']['refresh_token'] as $k => $t) {
+            $token = unserialize($t);
+            if ($refreshToken->getRefreshToken() !== $token->getRefreshToken()) {
+                continue;
+            }
+            unset($_SESSION['php-oauth-client']['refresh_token'][$k]);
+
+            return true;
         }
-        unset($_SESSION['refresh_token']);
 
-        return true;
+        return false;
     }
 
     public function getState($clientConfigId, $state)
     {
-        if (!array_key_exists("state", $_SESSION)) {
-            return false;
-        }
-        $sessionState = unserialize($_SESSION['state']);
-
-        if ($clientConfigId !== $sessionState->getClientConfigId()) {
+        if (!isset($_SESSION['php-oauth-client']['state'])) {
             return false;
         }
 
-        if ($state !== $sessionState->getState()) {
-            return false;
+        foreach ($_SESSION['php-oauth-client']['state'] as $s) {
+            $sessionState = unserialize($s);
+
+            if ($clientConfigId !== $sessionState->getClientConfigId()) {
+                continue;
+            }
+            if ($state !== $sessionState->getState()) {
+                continue;
+            }
+
+            return $sessionState;
         }
 
-        return $sessionState;
+        return false;
     }
 
     public function storeState(State $state)
     {
-        if (array_key_exists("state", $_SESSION)) {
-            return false;
+        if (!isset($_SESSION['php-oauth-client']['state'])) {
+            $_SESSION['php-oauth-client']['state'] = array();
         }
-        $_SESSION['state'] = serialize($state);
+
+        array_push($_SESSION['php-oauth-client']['state'], serialize($state));
 
         return true;
     }
 
     public function deleteStateForUser($clientConfigId, $userId)
     {
-        if (!array_key_exists("state", $_SESSION)) {
-            return false;
-        }
-        $sessionState = unserialize($_SESSION['state']);
-
-        if ($clientConfigId !== $sessionState->getClientConfigId()) {
-            return false;
-        }
-        if ($userId !== $sessionState->getUserId()) {
+        if (!isset($_SESSION['php-oauth-client']['state'])) {
             return false;
         }
 
-        unset($_SESSION['state']);
+        foreach ($_SESSION['php-oauth-client']['state'] as $k => $s) {
+            $sessionState = unserialize($s);
+            if ($clientConfigId !== $sessionState->getClientConfigId()) {
+                continue;
+            }
+            if ($userId !== $sessionState->getUserId()) {
+                continue;
+            }
+            unset($_SESSION['php-oauth-client']['state'][$k]);
 
-        return true;
+            return true;
+        }
+
+        return false;
     }
 
     public function deleteState(State $state)
     {
-        if (!array_key_exists("state", $_SESSION)) {
+        if (!isset($_SESSION['php-oauth-client']['state'])) {
             return false;
         }
-        $sessionState = unserialize($_SESSION['state']);
 
-        if ($state->getState() !== $sessionState->getState()) {
-            return false;
+        foreach ($_SESSION['php-oauth-client']['state'] as $k => $s) {
+            $sessionState = unserialize($s);
+            if ($state->getState() !== $sessionState->getState()) {
+                continue;
+            }
+            unset($_SESSION['php-oauth-client']['state'][$k]);
+
+            return true;
         }
-        unset($_SESSION['state']);
 
-        return true;
+        return false;
     }
 }
