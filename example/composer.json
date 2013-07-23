@@ -2,6 +2,6 @@
     "name": "fkooman/demo",
     "require": {
         "fkooman/guzzle-bearer-auth-plugin": "0.2.1",
-        "fkooman/php-oauth-client": "dev-lib-only"
+        "fkooman/php-oauth-client": "dev-master"
     }
 }
