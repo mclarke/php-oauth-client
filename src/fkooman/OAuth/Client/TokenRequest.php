@@ -61,7 +61,7 @@ class TokenRequest
             $p['client_secret'] = $this->clientConfig->getClientSecret();
         } else {
             // use basic authentication
-            $curlAuth = CurlAuthPlugin($this->clientConfig->getClientId(), $this->clientConfig->getClientSecret()));
+            $curlAuth = CurlAuthPlugin($this->clientConfig->getClientId(), $this->clientConfig->getClientSecret());
             $this->c->addSubscriber($curlAuth);
         }
 
