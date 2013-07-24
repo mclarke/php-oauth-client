@@ -3,7 +3,6 @@
 use fkooman\OAuth\Client\Api;
 use fkooman\OAuth\Client\ClientConfig;
 use fkooman\OAuth\Client\SessionStorage;
-use Guzzle\Http\Client;
 use Guzzle\Http\Exception\BadResponseException;
 use fkooman\Guzzle\Plugin\BearerAuth\BearerAuth;
 use fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException;
@@ -11,36 +10,27 @@ use fkooman\Guzzle\Plugin\BearerAuth\Exception\BearerErrorResponseException;
 require_once 'vendor/autoload.php';
 
 /* OAuth client configuration */
-$clientConfig = ClientConfig::fromArray(array(
+$clientConfig = new ClientConfig(array(
     "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
     "client_id" => "foo",
     "client_secret" => "foobar",
     "token_endpoint" => "http://localhost/oauth/php-oauth/token.php",
 ));
 
-/* the OAuth 2.0 protected URI */
-$apiUri = "http://localhost/oauth/php-oauth/api.php/authorizations/";
-
 /* initialize the API */
-$api = new Api();
-$api->setClientConfig("foo", $clientConfig);
-$api->setStorage(new SessionStorage());
-$api->setHttpClient(new Client());
-
-/* the user to bind the tokens to */
-$api->setUserId("john");
-
-/* the scope you want to request */
-$api->setScope(array("authorizations"));
+$api = new Api("foo", $clientConfig, new SessionStorage(), new \Guzzle\Http\Client());
+$context = new Context("john", array("authorizations"));
 
 /* check if an access token is available */
-$accessToken = $api->getAccessToken();
+$accessToken = $api->getAccessToken($context);
 if (false === $accessToken) {
     /* no valid access token available, go to authorization server */
     header("HTTP/1.1 302 Found");
-    header("Location: " . $api->getAuthorizeUri());
+    header("Location: " . $api->getAuthorizeUri($context));
     exit;
 }
+
+$apiUri = "http://localhost/oauth/php-oauth/api.php/authorizations/";
 
 /* we have an access token that appears valid */
 try {
@@ -53,7 +43,7 @@ try {
 } catch (BearerErrorResponseException $e) {
     if ("invalid_token" === $e->getBearerReason()) {
         // the token we used was invalid, possibly revoked, we throw it away
-        $api->deleteAccessToken();
+        $api->deleteAccessToken($context);
     }
     echo sprintf('ERROR: %s (%s)', $e->getBearerReason() , $e->getMessage());
 } catch (\Guzzle\Http\Exception\BadResponseException $e) {

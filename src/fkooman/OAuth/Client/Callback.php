@@ -21,27 +21,38 @@ class Callback
 {
     private $clientConfigId;
     private $clientConfig;
-    private $storage;
+    private $tokenStorage;
+    private $httpClient;
 
-    public function __construct()
+    public function __construct($clientConfigId, ClientConfigInterface $clientConfig, StorageInterface $tokenStorage, \Guzzle\Http\Client $httpClient)
     {
-
+        $this->setClientConfigId($clientConfigId);
+        $this->setClientConfig($clientConfig);
+        $this->setTokenStorage($tokenStorage);
+        $this->setHttpClient($httpClient);
     }
 
-    public function setClientConfig($clientConfigId, ClientConfigInterface $clientConfig)
+    public function setClientConfigId($clientConfigId)
     {
+        if (!is_string($clientConfigId) || 0 >= strlen($clientConfigId)) {
+            throw new ApiException("clientConfigId should be a non-empty string");
+        }
         $this->clientConfigId = $clientConfigId;
+    }
+
+    public function setClientConfig(ClientConfigInterface $clientConfig)
+    {
         $this->clientConfig = $clientConfig;
     }
 
-    public function setStorage(StorageInterface $storage)
+    public function setTokenStorage(StorageInterface $tokenStorage)
     {
-        $this->storage = $storage;
+        $this->tokenStorage = $tokenStorage;
     }
 
-    public function setHttpClient(\Guzzle\Http\Client $client)
+    public function setHttpClient(\Guzzle\Http\Client $httpClient)
     {
-        $this->httpClient = $client;
+        $this->httpClient = $httpClient;
     }
 
     public function handleCallback(array $query)
@@ -54,12 +65,12 @@ class Callback
         if (null === $qState) {
             throw new CallbackException("state parameter missing");
         }
-        $state = $this->storage->getState($this->clientConfigId, $qState);
+        $state = $this->tokenStorage->getState($this->clientConfigId, $qState);
         if (false === $state) {
             throw new CallbackException(sprintf("state '%s' for '%s' not found", $qState, $this->clientConfigId));
         }
 
-        if (false === $this->storage->deleteState($state)) {
+        if (false === $this->tokenStorage->deleteState($state)) {
             throw new CallbackException("state invalid or already used");
         }
 
@@ -68,10 +79,7 @@ class Callback
         }
 
         if (null !== $qCode) {
-
-            $guzzle = $this->httpClient;
-
-            $t = new TokenRequest($guzzle, $this->clientConfig);
+            $t = new TokenRequest($this->httpClient, $this->clientConfig);
             $tokenResponse = $t->withAuthorizationCode($qCode);
             if (false === $tokenResponse) {
                 // FIXME: better error, this should probably not be 500?
@@ -91,7 +99,7 @@ class Callback
                     "expires_in" => $tokenResponse->getExpiresIn()
                 )
             );
-            $this->storage->storeAccessToken($accessToken);
+            $this->tokenStorage->storeAccessToken($accessToken);
             if (null !== $tokenResponse->getRefreshToken()) {
                 $refreshToken = new RefreshToken(
                     array(
@@ -102,7 +110,7 @@ class Callback
                         "issue_time" => time()
                     )
                 );
-                $this->storage->storeRefreshToken($refreshToken);
+                $this->tokenStorage->storeRefreshToken($refreshToken);
             }
 
             return $accessToken;

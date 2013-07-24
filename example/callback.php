@@ -9,7 +9,7 @@ use Guzzle\Http\Client;
 require_once 'vendor/autoload.php';
 
 /* OAuth client configuration */
-$clientConfig = ClientConfig::fromArray(array(
+$clientConfig = new ClientConfig(array(
     "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
     "client_id" => "foo",
     "client_secret" => "foobar",
@@ -18,10 +18,7 @@ $clientConfig = ClientConfig::fromArray(array(
 
 try {
     /* initialize the API */
-    $cb = new Callback();
-    $cb->setClientConfig("foo", $clientConfig);
-    $cb->setStorage(new SessionStorage());
-    $cb->setHttpClient(new Client());
+    $cb = new Callback("foo", $clientConfig, new SessionStorage(), new \Guzzle\Http\Client());
 
     /* handle the callback */
     $cb->handleCallback($_GET);
