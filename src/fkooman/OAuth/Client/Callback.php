@@ -67,27 +67,33 @@ class Callback
         }
         $state = $this->tokenStorage->getState($this->clientConfigId, $qState);
         if (false === $state) {
-            throw new CallbackException(sprintf("state '%s' for '%s' not found", $qState, $this->clientConfigId));
+            throw new CallbackException("state not found");
         }
 
         if (false === $this->tokenStorage->deleteState($state)) {
-            throw new CallbackException("state invalid or already used");
+            throw new CallbackException("state already used");
         }
 
         if (null === $qCode && null === $qError) {
-            throw new CallbackException("code or error parameter missing");
+            throw new CallbackException("both code and error parameter missing");
+        }
+
+        if (null !== $qError) {
+            throw new AuthorizeException($qError, $qErrorDescription);
         }
 
         if (null !== $qCode) {
             $t = new TokenRequest($this->httpClient, $this->clientConfig);
             $tokenResponse = $t->withAuthorizationCode($qCode);
             if (false === $tokenResponse) {
-                // FIXME: better error, this should probably not be 500?
-                throw new CallbackException("unable to fetch token with authorization code");
+                throw new CallbackException("unable to fetch access token with authorization code");
             }
 
-            // we got a new token
+            // if response contains a granted scope use that, if not we assume
+            // we got what we asked for, take it from the state object
             $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $state->getScope();
+
+            // store the access token
             $accessToken = new AccessToken(
                 array(
                     "client_config_id" => $this->clientConfigId,
@@ -100,6 +106,9 @@ class Callback
                 )
             );
             $this->tokenStorage->storeAccessToken($accessToken);
+
+            // if we also got a refresh token in the response, store that as
+            // well
             if (null !== $tokenResponse->getRefreshToken()) {
                 $refreshToken = new RefreshToken(
                     array(
@@ -115,20 +124,5 @@ class Callback
 
             return $accessToken;
         }
-
-        if (null !== $qError) {
-            // FIXME: how to get the error back to the API?! the API should be
-            // informed as well I guess, or should we notify the user here
-            // and stop, or just redirect back to the app?
-            //
-            // Probably store the error in the DB and let the client api
-            // handle it...maybe continue without access if the app would still
-            // work or try again, or whatever...
-            throw new CallbackException($qError . ": " . $qErrorDescription);
-        }
-
-        // FIXME: change flow!
-        // nothing left here...
-
     }
 }
