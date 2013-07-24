@@ -106,6 +106,7 @@ Assuming the `getAccessToken($context)` call returns `false`, i.e.: there was
 no token, we have to obtain authorization:
 
     if (false === $accessToken) {
+        /* no valid access token available, go to authorization server */
         header("HTTP/1.1 302 Found");
         header("Location: " . $api->getAuthorizeUri($context));
         exit;
@@ -131,19 +132,21 @@ This example uses Guzzle as well:
         $bearerAuth = new BearerAuth($accessToken->getAccessToken());
         $client->addSubscriber($bearerAuth);
         $response = $client->get($apiUri)->send();
+
         header("Content-Type: application/json");
         echo $response->getBody();
     } catch (BearerErrorResponseException $e) {
         if ("invalid_token" === $e->getBearerReason()) {
-            // the token we used was invalid, possibly revoked, we throw it 
-            // away
+            // the token we used was invalid, possibly revoked, we throw it away
             $api->deleteAccessToken($context);
+            $api->deleteRefreshToken($context);
+
+            /* no valid access token available, go to authorization server */
+            header("HTTP/1.1 302 Found");
+            header("Location: " . $api->getAuthorizeUri($context));
+            exit;
         }
-        echo sprintf('ERROR: %s (%s)', $e->getBearerReason() , $e->getMessage());
-    } catch (\Guzzle\Http\Exception\BadResponseException $e) {
-        // something was wrong with the request, server did not accept it, not
-        // related to OAuth... deal with it appropriately
-        echo sprintf('ERROR: %s', $e->getMessage());
+        throw $e;
     }
     
 Pay special attention to the `BearerErrorResponseException` where a token is
