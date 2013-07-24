@@ -17,84 +17,50 @@
 
 namespace fkooman\OAuth\Client;
 
-class ClientConfig
+class ClientConfig implements ClientConfigInterface
 {
     // VSCHAR     = %x20-7E
     const REGEXP_VSCHAR = '/^(?:[\x20-\x7E])*$/';
 
-    protected $clientId;
-    protected $clientSecret;
-    protected $authorizeEndpoint;
-    protected $tokenEndpoint;
-    protected $redirectUri;
-    protected $credentialsInRequestBody;
-    protected $enableDebug;
+    private $clientId;
+    private $authorizeEndpoint;
+    private $tokenEndpoint;
+    private $clientSecret;
+    private $redirectUri;
+    private $credentialsInRequestBody;
+    private $enableDebug;
 
-    public function __construct($clientId, $clientSecret, $authorizeEndpoint, $tokenEndpoint)
+    public function __construct(array $data)
     {
-        $this->setClientId($clientId);
+        foreach (array('client_id', 'authorize_endpoint', 'token_endpoint') as $key) {
+            if (!array_key_exists($key, $data)) {
+               throw new ClientConfigException(sprintf("missing field '%s'", $key));
+            }
+        }
+        $this->setClientId($data['client_id']);
+        $this->setAuthorizeEndpoint($data['authorize_endpoint']);
+        $this->setTokenEndpoint($data['token_endpoint']);
+
+        $clientSecret = array_key_exists('client_secret', $data) ? $data['client_secret'] : null;
         $this->setClientSecret($clientSecret);
-        $this->setAuthorizeEndpoint($authorizeEndpoint);
-        $this->setTokenEndpoint($tokenEndpoint);
-        $this->setRedirectUri(null);
-        $this->setCredentialsInRequestBody(false);
-        $this->setEnableDebug(false);
-    }
 
-    public static function fromArray(array $data)
-    {
-        foreach (array ('client_id', 'client_secret', 'authorize_endpoint', 'token_endpoint') as $key) {
-            if (!isset($data[$key])) {
-                throw new ClientConfigException(sprintf("missing field '%s'", $key));
-            }
-        }
+        $redirectUri = array_key_exists('redirect_uri', $data) ? $data['redirect_uri'] : null;
+        $this->setRedirectUri($redirectUri);
 
-        $c = new static($data['client_id'], $data['client_secret'], $data['authorize_endpoint'], $data['token_endpoint']);
-        if (isset($data['redirect_uri'])) {
-            $c->setRedirectUri($data['redirect_uri']);
-        }
-        if (isset($data['credentials_in_request_body'])) {
-            $c->setCredentialsInRequestBody($data['credentials_in_request_body']);
-        }
-        if (isset($data['enable_debug'])) {
-            $c->setEnableDebug($data['enable_debug']);
-        }
+        $credentialsInRequestBody = array_key_exists('credentials_in_request_body', $data) ? $data['credentials_in_request_body'] : false;
+        $this->setCredentialsInRequestBody($credentialsInRequestBody);
 
-        return $c;
-    }
-
-    /**
-     * From a Google "client_secrets.json" file
-     */
-    public static function fromGoogleConfig(array $data)
-    {
-        if (!isset($data['web'])) {
-            throw new ClientConfigException("no configuration 'web' found, wrong client type");
-        }
-        foreach (array ('client_id', 'client_secret', 'auth_uri', 'token_uri', 'redirect_uris') as $key) {
-            if (!isset($data['web'][$key])) {
-                throw new ClientConfigException(sprintf("missing field '%s'", $key));
-            }
-        }
-        $c = new static($data['web']['client_id'], $data['web']['client_secret'], $data['web']['auth_uri'], $data['web']['token_uri']);
-
-        // Google always wants credentials in request body...
-        $c->setCredentialsInRequestBody(true);
-
-        // Google always needs the redirect_uri to be specified...
-        // FIXME: you can register multiple redirect_uris at Google, how to
-        // choose? For now we just pick the first one...
-        $c->setRedirectUri($data['web']['redirect_uris'][0]);
-
-        return $c;
+        $enableDebug = array_key_exists('enable_debug', $data) ? $data['enable_debug'] : false;
+        $this->setEnableDebug($enableDebug);
     }
 
     public function setClientId($clientId)
     {
-        if (!is_string($clientId) || empty($clientId)) {
-            throw new ClientConfigException("client_id must be non empty string");
+        if (!is_string($clientId) || 0 >= strlen($clientId)) {
+            throw new ClientConfigException("client_id must be a non-empty string");
         }
-        $this->clientId = $this->validateBasicUserPass($clientId);
+        $this->validateUserPass($clientId);
+        $this->clientId = $clientId;
     }
 
     public function getClientId()
@@ -104,11 +70,13 @@ class ClientConfig
 
     public function setClientSecret($clientSecret)
     {
-        if (!is_string($clientSecret)) {
-            // client_secret can be empty if no password is set (NOT RECOMMENDED!)
-            throw new ClientConfigException("client_secret must be string");
+        if (null !== $clientSecret) {
+            if (!is_string($clientSecret) || 0 >= strlen($clientSecret)) {
+                throw new ClientConfigException("client_secret must be a non-empty string or null");
+            }
+            $this->validateUserPass($clientSecret);
         }
-        $this->clientSecret = $this->validateBasicUserPass($clientSecret);
+        $this->clientSecret = $clientSecret;
     }
 
     public function getClientSecret()
@@ -118,7 +86,8 @@ class ClientConfig
 
     public function setAuthorizeEndpoint($authorizeEndpoint)
     {
-        $this->authorizeEndpoint = $this->validateEndpointUri($authorizeEndpoint);
+        $this->validateEndpointUri($authorizeEndpoint);
+        $this->authorizeEndpoint = $authorizeEndpoint;
     }
 
     public function getAuthorizeEndpoint()
@@ -128,7 +97,8 @@ class ClientConfig
 
     public function setTokenEndpoint($tokenEndpoint)
     {
-        $this->tokenEndpoint = $this->validateEndpointUri($tokenEndpoint);
+        $this->validateEndpointUri($tokenEndpoint);
+        $this->tokenEndpoint = $tokenEndpoint;
     }
 
     public function getTokenEndpoint()
@@ -139,8 +109,9 @@ class ClientConfig
     public function setRedirectUri($redirectUri)
     {
         if (null !== $redirectUri) {
-            $this->redirectUri = $this->validateEndpointUri($redirectUri);
+            $this->validateEndpointUri($redirectUri);
         }
+        $this->redirectUri = $redirectUri;
     }
 
     public function getRedirectUri()
@@ -168,19 +139,17 @@ class ClientConfig
         return $this->enableDebug;
     }
 
-    private function validateBasicUserPass($basicUserPass)
+    private function validateUserPass($userPass)
     {
-        if (1 !== preg_match(self::REGEXP_VSCHAR, $basicUserPass)) {
-            throw new ClientConfigException("invalid character(s) in client_id or client_secret");
+        if (1 !== preg_match(self::REGEXP_VSCHAR, $userPass)) {
+            throw new ClientConfigException("invalid characters in client_id or client_secret");
         }
-
-        return $basicUserPass;
     }
 
     private function validateEndpointUri($endpointUri)
     {
-        if (!is_string($endpointUri) || empty($endpointUri)) {
-            throw new ClientConfigException("uri must be non empty string");
+        if (!is_string($endpointUri) || 0 >= strlen($endpointUri)) {
+            throw new ClientConfigException("uri must be a non-empty string");
         }
         if (false === filter_var($endpointUri, FILTER_VALIDATE_URL)) {
             throw new ClientConfigException("uri must be valid URL");
@@ -189,7 +158,5 @@ class ClientConfig
         if (null !== parse_url($endpointUri, PHP_URL_FRAGMENT)) {
             throw new ClientConfigException("uri must not contain a fragment");
         }
-
-        return $endpointUri;
     }
 }

@@ -11,7 +11,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
     public function testSimple()
     {
         $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token");
-        $c = ClientConfig::fromArray($data);
+        $c = new ClientConfig($data);
         $this->assertEquals("foo", $c->getClientId());
         $this->assertEquals("bar", $c->getClientSecret());
         $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
@@ -23,7 +23,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
     public function testLessSimple()
     {
         $data = array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token", "redirect_uri" => "http://www.example.org/callback", "credentials_in_request_body" => TRUE);
-        $c = ClientConfig::fromArray($data);
+        $c = new ClientConfig($data);
         $this->assertEquals("foo", $c->getClientId());
         $this->assertEquals("bar", $c->getClientSecret());
         $this->assertEquals("http://www.example.org/authorize", $c->getAuthorizeEndpoint());
@@ -38,7 +38,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
      */
     public function testValidClients(array $data)
     {
-        ClientConfig::fromArray($data);
+        new ClientConfig($data);
     }
 
     /**
@@ -47,7 +47,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
     public function testInvalidClients(array $data, $message)
     {
         try {
-            ClientConfig::fromArray($data);
+            new ClientConfig($data);
             $this->assertTrue(FALSE);
         } catch (ClientConfigException $e) {
             $this->assertEquals($message, $e->getMessage());
@@ -68,7 +68,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
             ),
             // empty client_secret is allowed
             array(
-              array ("client_id" => "foo", "client_secret" => "", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
+              array ("client_id" => "foo", "client_secret" => null, "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
             ),
         );
     }
@@ -82,11 +82,11 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
             ),
             array(
                 array("client_id" => "", "client_secret" => "", "authorize_endpoint" => "", "token_endpoint" => ""),
-                "client_id must be non empty string"
+                "client_id must be a non-empty string"
             ),
             array(
                 array("client_id" => "foo"),
-                "missing field 'client_secret'"
+                "missing field 'authorize_endpoint'"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar"),
@@ -94,7 +94,7 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => 5),
-                "uri must be non empty string"
+                "uri must be a non-empty string"
             ),
             array(
                 array("client_id" => "foo", "client_secret" => "bar", "authorize_endpoint" => "http://www.example.org/authorize"),
@@ -114,11 +114,11 @@ class ClientConfigTest extends PHPUnit_Framework_TestCase
             //),
             array(
               array ("client_id" => "foo", "client_secret" => "∑", "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
-                "invalid character(s) in client_id or client_secret"
+                "invalid characters in client_id or client_secret"
             ),
             array(
               array ("client_id" => "foo", "client_secret" => 5, "authorize_endpoint" => "http://www.example.org/authorize", "token_endpoint" => "http://www.example.org/token"),
-                "client_secret must be string"
+                "client_secret must be a non-empty string or null"
             ),
 
         );

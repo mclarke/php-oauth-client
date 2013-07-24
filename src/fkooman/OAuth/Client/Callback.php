@@ -28,7 +28,7 @@ class Callback
 
     }
 
-    public function setClientConfig($clientConfigId, ClientConfig $clientConfig)
+    public function setClientConfig($clientConfigId, ClientConfigInterface $clientConfig)
     {
         $this->clientConfigId = $clientConfigId;
         $this->clientConfig = $clientConfig;

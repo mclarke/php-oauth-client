@@ -22,7 +22,7 @@ class TokenRequest
     private $c;
     private $clientConfig;
 
-    public function __construct(\Guzzle\Http\Client $c, ClientConfig $clientConfig)
+    public function __construct(\Guzzle\Http\Client $c, ClientConfigInterface $clientConfig)
     {
         $this->c = $c;
         $this->clientConfig = $clientConfig;

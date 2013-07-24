@@ -44,15 +44,25 @@ Initializing the API is easy:
 
     $api = new Api();
 
-Next you can add the client configuration to the object. You can fetch this 
-from a configuration file in your application if desired.
+Next you can add the client configuration to the object. You can fetch this from a 
+configuration file in your application if desired. Below is an example of the generic
+`ClientConfig` class, there is also a `GoogleClientConfig` class that you can use 
+with Google's `client_secrets.json` file format.
 
-    $clientConfig = ClientConfig::fromArray(array(
-        "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
-        "client_id" => "foo",
-        "client_secret" => "foobar",
-        "token_endpoint" => "http://localhost/oauth/php-oauth/token.php",
-    ));
+    // generic
+    $clientConfig = new ClientConfig(
+        array(
+            "authorize_endpoint" => "http://localhost/oauth/php-oauth/authorize.php",
+            "client_id" => "foo",
+            "client_secret" => "foobar",
+            "token_endpoint" => "http://localhost/oauth/php-oauth/token.php",
+        )
+    );
+    
+    // Google
+    $googleClientConfig = new GoogleClientConfig(
+        json_decode(file_get_contents("client_secrets.json"), true)
+    );
 
 Add it to the API:
 
@@ -156,4 +166,3 @@ See the PHP PDO documentation on how to specify other databases.
 
 Please note that if you use SQLite, please note that the *directory* you write 
 the file to needs to be writable to the web server as well!
-

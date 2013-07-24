@@ -47,7 +47,7 @@ class Api
         $this->state = null;
     }
 
-    public function setClientConfig($clientConfigId, ClientConfig $c)
+    public function setClientConfig($clientConfigId, ClientConfigInterface $c)
     {
         $this->clientConfigId = $clientConfigId;
         $this->clientConfig = $c;
