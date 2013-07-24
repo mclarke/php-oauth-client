@@ -62,11 +62,11 @@ class Api
         $this->httpClient = $httpClient;
     }
 
-    /**
-     * Obtain an access token from the OAuth 2.0 authorization server
-     *
-     * @return \fkooman\OAuth\Client\AccessToken|false
-     */
+    public function getRefreshToken(Context $context)
+    {
+        return $this->tokenStorage->getRefreshToken($this->clientConfigId, $context->getUserId(), $context->getScope());
+    }
+
     public function getAccessToken(Context $context)
     {
         // do we have a valid access token?
@@ -84,7 +84,7 @@ class Api
         }
 
         // no valid access token, is there a refresh_token?
-        $refreshToken = $this->tokenStorage->getRefreshToken($this->clientConfigId, $context->getUserId(), $context->getScope());
+        $refreshToken = $this->getRefreshToken($context);
         if (false !== $refreshToken) {
             // obtain a new access token with refresh token
             $tokenRequest = new TokenRequest($this->httpClient, $this->clientConfig);
@@ -133,6 +133,14 @@ class Api
         $accessToken = $this->getAccessToken($context);
         if (false !== $accessToken) {
             $this->tokenStorage->deleteAccessToken($accessToken);
+        }
+    }
+
+    public function deleteRefreshToken(Context $context)
+    {
+        $refreshToken = $this->getRefreshToken($context);
+        if (false !== $refreshToken) {
+            $this->tokenStorage->deleteRefreshToken($refreshToken);
         }
     }
 
