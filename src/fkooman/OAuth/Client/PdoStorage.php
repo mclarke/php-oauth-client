@@ -22,7 +22,6 @@ use \PDO as PDO;
 class PdoStorage implements StorageInterface
 {
     private $pdo;
-    private $prefix;
 
     public function __construct(PDO $p)
     {
@@ -150,10 +149,5 @@ class PdoStorage implements StorageInterface
         $stmt->execute();
 
         return 1 === $stmt->rowCount();
-    }
-
-    public function dbQuery($query)
-    {
-        $this->pdo->exec($query);
     }
 }
