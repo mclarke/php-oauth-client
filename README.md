@@ -49,6 +49,7 @@ you with that.
 The sections below will walk through all the steps you need in order to get the
 client working.
 
+## Example
 In addition to this, a full example is available in the `example` directory. 
 This includes `index.php` that does the token request and requests the data. 
 Also a `callback.php` is included to show how to use the `Callback` API. Next
