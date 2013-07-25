@@ -5,6 +5,12 @@ described in RFC 6749, section 4.1.
 The client can be controlled through a PHP API that is used from the 
 application trying to access an OAuth 2.0 protected resource server. 
 
+# Features
+The following features are supported:
+
+* "Authorization Code Grant" Profile
+* Refresh Tokens
+
 # License
 Licensed under the GNU Lesser General Public License as published by the Free 
 Software Foundation, either version 3 of the License, or (at your option) any 
@@ -22,24 +28,46 @@ answer some questions:
 
 * Where am I going to store the access tokens?
 * How do I make an endpoint URL available in my application that can be used as 
-  a redirect URL for the callback
+  a redirect URL for the callback from the authorization server?
 
-Next to this you need OAuth client credentials and API documentation
-to know how to use the API. You for instance need to know the 
-`authorize_endpoint`, the `token_endpoint`, the `client_id` and 
-`client_secret`.
+Next to this you need OAuth client credentials from the authorization server 
+and REST API documentation from the service you want to connect to. You for 
+instance need to know the `authorize_endpoint`, the `token_endpoint`, the
+`client_id` and `client_secret`.
 
 As for storing access tokens, this library includes two backends. One for 
-storing the tokens in a PDO database and one for storing them in the user 
-session. The first one requires some setup, the second one is very easy to 
-use (no configuration) but will not allow the client to access data at the 
-resource server without the session data being available. A more robust 
-implementation would use the PDO backed storage. For testing purposes or very
-simple setups the session implementation makes the most sense.
+storing the tokens in a database (using the PHP PDO abstraction layer) and one 
+for storing them in the user session. The first one requires some setup, the 
+second one is very easy to use (no configuration) but will not allow the client 
+to access data at the resource server without the session data being available. 
+A more robust implementation would use the PDO backed storage. For testing 
+purposes or very simple setups the session implementation makes the most sense.
 
-The example below will walk through all the steps you need in order to get the
+For accessing the resource service a Guzzle plugin is available that will help
+you with that.
+
+The sections below will walk through all the steps you need in order to get the
 client working.
 
+## Composer
+In order to easily integrate with your application it is recommended to use
+Composer to install the dependencies. You need to install two libraries to 
+use this library: 
+
+* `fkooman/php-oauth-client`
+* `fkooman/guzzle-bearer-auth-plugin`
+
+Below is a simple example `composer.json` file you could use:
+
+    {
+        "name": "fkooman/my-demo-oauth-app",
+        "require": {
+            "fkooman/guzzle-bearer-auth-plugin": "dev-master",
+            "fkooman/php-oauth-client": "dev-master"
+        }
+    }
+
+## Client Configuration
 You can create an client configuration object as shown below. You can fetch 
 this from a configuration file in your application if desired. Below is an 
 example of the generic `ClientConfig` class:
@@ -61,6 +89,7 @@ There is also a `GoogleClientConfig` class that you can use with Google's
         json_decode(file_get_contents("client_secrets.json"), true)
     );
 
+## Initializing the API
 Now you can initialize the `Api` object:
 
     $api = new Api("foo", $clientConfig, new SessionStorage(), new \Guzzle\Http\Client());
@@ -75,10 +104,11 @@ exchange authorization codes for access tokens, or use a refresh token to
 obtain a new access token.
 
 ## Requesting Tokens
-In order to request tokens you can use two methods: `getAccessToken()` and 
-`getAuthorizeUri()`. The first one is used to see if there is already a token 
-available, the second to obtain an URL to which you have to redirect the 
-browser from your application. The example below will show you how to use this.
+In order to request tokens you need to use two methods: `Api::getAccessToken()` 
+and  `Api::getAuthorizeUri()`. The first one is used to see if there is already 
+a token available, the second to obtain an URL to which you have to redirect 
+the browser from your application. The example below will show you how to use 
+these methods.
 
 Before you can call these methods you need to create a `Context` object to 
 specify for which user you are requesting this access token and what the scope 
@@ -88,10 +118,11 @@ is you want to request at the authorization server.
     
 This means that you will request a token bound to `john.doe@example.org` with 
 the scope `read`. The user you specify here is typically the user identifier 
-you use in your application that wants to integrate with the OAuth 2.0 
+you use in *your* application that wants to integrate with the OAuth 2.0 
 protected resource. At your service the user can for example be 
-`john.doe@example.org`, In order to find back the tokens on subsequent requests 
-you need to bind it to the user identifier you know about this user.
+`john.doe@example.org`. This identifier is in no way related to the identity
+of the user at the remote service, it is just used for book keeping the 
+access tokens.
 
 Now you can see if an access token is already available:
 
@@ -99,8 +130,9 @@ Now you can see if an access token is already available:
     
 This call returns `false` if no access token is available for this user and 
 scope and none could be obtained through the backchannel using a refresh token. 
-This means that there never was a token or it expired. The token could still be \
-revoked, but we cannot see that right now, we'll figure that out later.
+This means that there never was a token or it expired. The token can still be
+revoked, but we cannot see that right now, we'll find that out when we try to
+use it later.
 
 Assuming the `getAccessToken($context)` call returns `false`, i.e.: there was 
 no token, we have to obtain authorization:
@@ -113,16 +145,17 @@ no token, we have to obtain authorization:
     }
 
 This is the simplest way if your application is not using any framework. 
-Usually a framework is available to do proper redirects without setting the 
-HTTP headers yourself. You should use this!
+If your application uses a framework you can probably use that to do "proper" 
+redirect without setting the HTTP headers yourself. You should use this!
 
-After this the flow of this script ends and the user is redirected to the 
+After this, the flow of this script ends and the user is redirected to the 
 authorization server. Once there, the user accepts the client request and is 
 redirected back to the redirection URL you registered at the OAuth 2.0 service 
-provider. You also need to put some code at this callback location, see below.
+provider. You also need to put some code at this callback location, see the 
+next section below.
 
 Assuming you already had an access token, i.e.: the response from 
-`getAccessToken($context)` was not `false` you can now try to get the resource. 
+`Api::getAccessToken()` was not `false` you can now try to get the resource. 
 This example uses Guzzle as well:
 
     $apiUrl = 'http://www.example.org/resource';
@@ -149,10 +182,10 @@ This example uses Guzzle as well:
         throw $e;
     }
     
-Pay special attention to the `BearerErrorResponseException` where a token is
-deleted when it turned out not to work. On the next call of the script there
-will be no access token and the user will be redirected to the authorization
-server if necessary, or not if there was still a valid `refresh_token`.
+Pay special attention to the `BearerErrorResponseException` where both the 
+access token and refresh token are deleted when the access token does not work.
+If that happens, the browser is redirected like in the case when there was no
+token yet.
 
 ## Handling the Callback
 The above situation assumed you already had a valid access token. If you didn't
@@ -162,7 +195,8 @@ redirected back the the redirection URI you registered at the OAuth 2.0
 service.
 
 The of the `Callback` class is very similar to the `Api` class. We assume you
-also create the `ClientConfig` object here, like in the `Api` case.
+also create the `ClientConfig` object here, like in the `Api` case. The
+contents of this file are assumed to be in `callback.php`.
 
     try {
         $cb = new Callback("foo", $clientConfig, new SessionStorage(), new \Guzzle\Http\Client());
@@ -183,8 +217,7 @@ also create the `ClientConfig` object here, like in the `Api` case.
 This is all that is needed here. The authorization code will be extracted from
 the callback URL and used to obtain an access token. The access token will be
 stored in the token storage, here `SessionStorage` and the browser will be 
-redirected back to the page where the `Api` calls are made. That script 
-could be `index.php` and this one would than be `callback.php`. 
+redirected back to the page where the `Api` calls are made, here `index.php`.
 
 # Token Storage
 You can store the tokens either in `SessionStorage` or `PdoStorage`. The first
