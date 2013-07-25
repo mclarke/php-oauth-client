@@ -1,7 +1,7 @@
 {
-    "name": "fkooman/demo",
+    "name": "fkooman/php-oauth-client-example", 
     "require": {
-        "fkooman/guzzle-bearer-auth-plugin": "0.2.1",
+        "fkooman/guzzle-bearer-auth-plugin": "dev-master", 
         "fkooman/php-oauth-client": "dev-master"
     }
 }
