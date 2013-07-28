@@ -28,12 +28,12 @@ class PdoStorage implements StorageInterface
         $this->db = $db;
     }
 
-    public function getAccessToken($clientConfigId, $userId, $scope)
+    public function getAccessToken($clientConfigId, Context $context)
     {
         $stmt = $this->db->prepare("SELECT * FROM access_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND scope = :scope");
         $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $context->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $context->getScope(), PDO::PARAM_STR);
         $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -68,12 +68,12 @@ class PdoStorage implements StorageInterface
         return 1 === $stmt->rowCount();
     }
 
-    public function getRefreshToken($clientConfigId, $userId, $scope)
+    public function getRefreshToken($clientConfigId, Context $context)
     {
         $stmt = $this->db->prepare("SELECT * FROM refresh_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND scope = :scope");
         $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $scope, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $context->getUserId(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $context->getScope(), PDO::PARAM_STR);
         $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -131,11 +131,11 @@ class PdoStorage implements StorageInterface
         return 1 === $stmt->rowCount();
     }
 
-    public function deleteStateForUser($clientConfigId, $userId)
+    public function deleteStateForUser($clientConfigId, Context $context)
     {
         $stmt = $this->db->prepare("DELETE FROM states WHERE client_config_id = :client_config_id AND user_id = :user_id");
         $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
-        $stmt->bindValue(":user_id", $userId, PDO::PARAM_STR);
+        $stmt->bindValue(":user_id", $context->getUserId(), PDO::PARAM_STR);
         $stmt->execute();
 
         return 1 === $stmt->rowCount();

@@ -59,11 +59,18 @@ class Scope
 
     public function getScopeAsString()
     {
+        if (null === $this->scope) {
+            return null;
+        }
+
         return implode(" ", $this->scope);
     }
 
     public function getScopeAsNormalizedString()
     {
+        if (null === $this->scope) {
+            return null;
+        }
         $scopeArray = $this->scope;
         sort($scopeArray, SORT_STRING);
 

@@ -64,13 +64,13 @@ class Api
 
     public function getRefreshToken(Context $context)
     {
-        return $this->tokenStorage->getRefreshToken($this->clientConfigId, $context->getUserId(), $context->getScope());
+        return $this->tokenStorage->getRefreshToken($this->clientConfigId, $context);
     }
 
     public function getAccessToken(Context $context)
     {
         // do we have a valid access token?
-        $accessToken = $this->tokenStorage->getAccessToken($this->clientConfigId, $context->getUserId(), $context->getScope());
+        $accessToken = $this->tokenStorage->getAccessToken($this->clientConfigId, $context);
         if (false !== $accessToken) {
             // check if expired
             if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
@@ -157,7 +157,7 @@ class Api
         }
 
         // try to get a new access token
-        $this->tokenStorage->deleteStateForUser($this->clientConfigId, $context->getUserId());
+        $this->tokenStorage->deleteStateForUser($this->clientConfigId, $context);
         $state = new State(
             array(
                 "client_config_id" => $this->clientConfigId,

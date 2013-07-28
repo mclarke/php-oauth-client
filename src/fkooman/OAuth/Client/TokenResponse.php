@@ -25,34 +25,26 @@ class TokenResponse
     private $refreshToken;
     private $scope;
 
-    public function __construct($accessToken, $tokenType)
+    public function __construct(array $data)
     {
-        $this->setAccessToken($accessToken);
-        $this->setTokenType($tokenType);
-        $this->setExpiresIn(null);
-        $this->setRefreshToken(null);
-        $this->setScope(null);
-    }
-
-    public static function fromArray(array $data)
-    {
+        var_dump($data);
         foreach (array('access_token', 'token_type') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenResponseException(sprintf("missing field '%s'", $key));
             }
         }
-        $t = new static($data['access_token'], $data['token_type']);
+        $this->setAccessToken($data['access_token']);
+        $this->setTokenType($data['token_type']);
+
         if (array_key_exists('expires_in', $data)) {
-            $t->setExpiresIn($data['expires_in']);
+            $this->setExpiresIn($data['expires_in']);
         }
         if (array_key_exists('refresh_token', $data)) {
-            $t->setRefreshToken($data['refresh_token']);
+            $this->setRefreshToken($data['refresh_token']);
         }
         if (array_key_exists('scope', $data)) {
-            $t->setScope($data['scope']);
+            $this->setScope($data['scope']);
         }
-
-        return $t;
     }
 
     public function setAccessToken($accessToken)
@@ -97,11 +89,11 @@ class TokenResponse
 
     public function setScope($scope)
     {
-        $this->scope = $scope;
+        $this->scope = new Scope($scope);
     }
 
     public function getScope()
     {
-        return $this->scope;
+        return $this->scope->getScopeAsNormalizedString();
     }
 }

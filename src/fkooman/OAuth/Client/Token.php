@@ -25,7 +25,7 @@ class Token
     /** user_id VARCHAR(255) NOT NULL */
     private $userId;
 
-    /** scope VARCHAR(255) NOT NULL */
+    /** scope VARCHAR(255) DEFAULT NULL */
     private $scope;
 
     /** issue_time INTEGER NOT NULL */
@@ -77,7 +77,12 @@ class Token
 
     public function getScope()
     {
-        return $this->scope;
+        return $this->scope->getScopeAsNormalizedString();
+    }
+
+    public function hasScope($scope)
+    {
+        return $this->scope->hasScope($scope);
     }
 
     public function setIssueTime($issueTime)
