@@ -170,7 +170,7 @@ This example uses Guzzle as well:
         $client = new Client();
         $bearerAuth = new BearerAuth($accessToken->getAccessToken());
         $client->addSubscriber($bearerAuth);
-        $response = $client->get($apiUri)->send();
+        $response = $client->get($apiUrl)->send();
 
         header("Content-Type: application/json");
         echo $response->getBody();
