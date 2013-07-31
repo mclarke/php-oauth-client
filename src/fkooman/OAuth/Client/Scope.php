@@ -79,6 +79,10 @@ class Scope
 
     public function hasScope($scope)
     {
+        /* if no scope is needed, all scopes suffice */
+        if (null === $scope) {
+            return true;
+        }
         if (is_array($scope)) {
             return $this->hasScopeArray($scope);
         } elseif (is_string($scope)) {
