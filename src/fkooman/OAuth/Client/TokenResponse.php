@@ -27,7 +27,6 @@ class TokenResponse
 
     public function __construct(array $data)
     {
-        var_dump($data);
         foreach (array('access_token', 'token_type') as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new TokenResponseException(sprintf("missing field '%s'", $key));
