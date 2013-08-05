@@ -128,7 +128,8 @@ you use in *your* application that wants to integrate with the OAuth 2.0
 protected resource. At your service the user can for example be 
 `john.doe@example.org`. This identifier is in no way related to the identity
 of the user at the remote service, it is just used for book keeping the 
-access tokens.
+access tokens. If you do not want to request any particular scope you can use
+`new Scope()`.
 
 Now you can see if an access token is already available:
 
