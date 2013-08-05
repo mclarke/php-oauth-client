@@ -28,6 +28,9 @@ class Context
 
     public function setScope(Scope $scope)
     {
+        if (null === $scope) {
+            $this->scope = new Scope();
+        }
         $this->scope = $scope;
     }
 
