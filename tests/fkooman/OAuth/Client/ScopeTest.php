@@ -33,6 +33,9 @@ class ScopeTest extends PHPUnit_Framework_TestCase
         $s = new Scope(null);
         $this->assertFalse($s->hasScope(new Scope("foo")));
         $this->assertTrue($s->hasScope(new Scope(array())));
+        $this->assertTrue($s->hasScope(new Scope()));
+        $this->assertTrue($s->hasScope(new Scope(array())));
+
     }
 
     /**

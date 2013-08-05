@@ -12,33 +12,36 @@ class Scope
         if (null === $scope) {
             $this->scope = array();
         } elseif (is_array($scope)) {
-            $this->scope = $this->scopeFromArray($scope);
+            $this->setScopeFromArray($scope);
         } elseif (is_string($scope)) {
-            $this->scope = $this->scopeFromString($scope);
+            $this->setScopeFromString($scope);
         } else {
             throw new ScopeException("scope needs to be a string, array or null");
         }
     }
 
-    private function scopeFromArray(array $scope)
+    private function setScopeFromArray(array $scope)
     {
         if (0 === count($scope)) {
-            return array();
+            $this->scope = array();
         }
         foreach ($scope as $s) {
             if (!$this->validateScopeToken($s)) {
                 throw new ScopeException(sprintf("invalid scope token '%s'", $s));
             }
         }
+        // sort the scope
+        sort($scope, SORT_STRING);
 
-        return $scope;
+        // remove duplicates and recreate index
+        $this->scope = array_values(array_unique($scope, SORT_STRING));
     }
 
-    private function scopeFromString($scope)
+    private function setScopeFromString($scope)
     {
         $scopeArray = explode(" ", $scope);
 
-        return $this->scopeFromArray($scopeArray);
+        $this->setScopeFromArray($scopeArray);
     }
 
     private function validateScopeToken($scopeToken)
@@ -52,24 +55,6 @@ class Scope
         return 1 === $result;
     }
 
-    public function getScopeAsArray()
-    {
-        return $this->scope;
-    }
-
-    public function getScopeAsString()
-    {
-        return implode(" ", $this->scope);
-    }
-
-    public function __toString()
-    {
-        return $this->getScopeAsString();
-    }
-
-    /**
-     * Determine if the scope specified in the parameter is part of this object
-     */
     public function hasScope(Scope $scope)
     {
         foreach ($scope->getScopeAsArray() as $s) {
@@ -79,6 +64,20 @@ class Scope
         }
 
         return true;
+    }
+
+    public function getScopeAsArray()
+    {
+        return $this->scope;
+    }
+
+    public function getScopeAsString()
+    {
+        if (0 === count($this->scope)) {
+            return null;
+        }
+
+        return implode(" ", $this->scope);
     }
 
 }
