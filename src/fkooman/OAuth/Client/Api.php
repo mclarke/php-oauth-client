@@ -176,7 +176,7 @@ class Api
             "response_type" => "code",
             "state" => $state->getState(),
         );
-        if (null !== $context->getScope()) {
+        if ('' !== $context->getScope()->getScopeAsString()) {
             $q['scope'] = $context->getScope()->getScopeAsString();
         }
         if ($this->clientConfig->getRedirectUri()) {
