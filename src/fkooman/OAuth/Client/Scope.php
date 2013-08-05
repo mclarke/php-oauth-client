@@ -10,7 +10,7 @@ class Scope
     public function __construct($scope = null)
     {
         if (null === $scope) {
-            $this->scope = null;
+            $this->scope = array();
         } elseif (is_array($scope)) {
             $this->scope = $this->scopeFromArray($scope);
         } elseif (is_string($scope)) {
@@ -23,7 +23,7 @@ class Scope
     private function scopeFromArray(array $scope)
     {
         if (0 === count($scope)) {
-            throw new ScopeException("scope cannot be empty");
+            return array();
         }
         foreach ($scope as $s) {
             if (!$this->validateScopeToken($s)) {
@@ -52,72 +52,33 @@ class Scope
         return 1 === $result;
     }
 
-    public function getScope()
+    public function getScopeAsArray()
     {
         return $this->scope;
     }
 
     public function getScopeAsString()
     {
-        if (null === $this->scope) {
-            return null;
-        }
-
         return implode(" ", $this->scope);
     }
 
-    public function getScopeAsNormalizedString()
+    public function __toString()
     {
-        if (null === $this->scope) {
-            return null;
-        }
-        $scopeArray = $this->scope;
-        sort($scopeArray, SORT_STRING);
-
-        return implode(" ", array_values(array_unique($scopeArray, SORT_STRING)));
-    }
-
-    public function hasScope($scope)
-    {
-        /* if no scope is needed, all scopes suffice */
-        if (null === $scope) {
-            return true;
-        }
-        if (is_array($scope)) {
-            return $this->hasScopeArray($scope);
-        } elseif (is_string($scope)) {
-            return $this->hasScopeString($scope);
-        } else {
-            throw new ScopeException("scope needs to be a non-empty string or an array");
-        }
+        return $this->getScopeAsString();
     }
 
     /**
-     * Determines if scope in the parameter is part of this object
+     * Determine if the scope specified in the parameter is part of this object
      */
-    public function hasScopeString($scope)
+    public function hasScope(Scope $scope)
     {
-        if (!is_string($scope) || 0 >= strlen($scope)) {
-            throw new ScopeException("scope needs to be a non-empty string");
-        }
-
-        return null !== $this->scope ? in_array($scope, $this->scope) : false;
-    }
-
-    /**
-     * Determines if ALL scopes in the parameter array are part of this scope.
-     *
-     * If the array is empty true is returned
-     *
-     */
-    public function hasScopeArray(array $scope)
-    {
-        foreach ($scope as $s) {
-            if (!$this->hasScopeString($s)) {
+        foreach ($scope->getScopeAsArray() as $s) {
+            if (!in_array($s, $this->scope)) {
                 return false;
             }
         }
 
         return true;
     }
+
 }

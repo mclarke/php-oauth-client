@@ -120,7 +120,7 @@ Before you can call these methods you need to create a `Context` object to
 specify for which user you are requesting this access token and what the scope 
 is you want to request at the authorization server.
 
-    $context = new Context("john.doe@example.org", array("read"));
+    $context = new Context("john.doe@example.org", new Scope("read"));
     
 This means that you will request a token bound to `john.doe@example.org` with 
 the scope `read`. The user you specify here is typically the user identifier 

@@ -11,28 +11,28 @@ class ScopeTest extends PHPUnit_Framework_TestCase
     public function testStringScope()
     {
         $s = new Scope("read write delete");
-        $this->assertTrue($s->hasScope("read"));
-        $this->assertTrue($s->hasScope("write"));
-        $this->assertTrue($s->hasScope("delete"));
-        $this->assertTrue($s->hasScope(array("read", "delete")));
-        $this->assertFalse($s->hasScope("foo"));
+        $this->assertTrue($s->hasScope(new Scope("read")));
+        $this->assertTrue($s->hasScope(new Scope("write")));
+        $this->assertTrue($s->hasScope(new Scope("delete")));
+        $this->assertTrue($s->hasScope(new Scope(array("read", "delete"))));
+        $this->assertFalse($s->hasScope(new Scope("foo")));
     }
 
     public function testArrayScope()
     {
         $s = new Scope(array("read", "write", "delete"));
-        $this->assertTrue($s->hasScope("read"));
-        $this->assertTrue($s->hasScope("write"));
-        $this->assertTrue($s->hasScope("delete"));
-        $this->assertTrue($s->hasScope(array("read", "delete")));
-        $this->assertFalse($s->hasScope("foo"));
+        $this->assertTrue($s->hasScope(new Scope("read")));
+        $this->assertTrue($s->hasScope(new Scope("write")));
+        $this->assertTrue($s->hasScope(new Scope("delete")));
+        $this->assertTrue($s->hasScope(new Scope(array("read", "delete"))));
+        $this->assertFalse($s->hasScope(new Scope("foo")));
     }
 
     public function testNullScope()
     {
         $s = new Scope(null);
-        $this->assertFalse($s->hasScope("foo"));
-        $this->assertTrue($s->hasScope(array()));
+        $this->assertFalse($s->hasScope(new Scope("foo")));
+        $this->assertTrue($s->hasScope(new Scope(array())));
     }
 
     /**

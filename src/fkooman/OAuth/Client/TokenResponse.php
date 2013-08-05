@@ -42,7 +42,7 @@ class TokenResponse
             $this->setRefreshToken($data['refresh_token']);
         }
         if (array_key_exists('scope', $data)) {
-            $this->setScope($data['scope']);
+            $this->setScope(new Scope($data['scope']));
         }
     }
 
@@ -86,13 +86,13 @@ class TokenResponse
         return $this->refreshToken;
     }
 
-    public function setScope($scope)
+    public function setScope(Scope $scope)
     {
-        $this->scope = new Scope($scope);
+        $this->scope = $scope;
     }
 
     public function getScope()
     {
-        return $this->scope->getScopeAsNormalizedString();
+        return $this->scope;
     }
 }

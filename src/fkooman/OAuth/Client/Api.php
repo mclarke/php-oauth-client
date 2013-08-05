@@ -177,7 +177,7 @@ class Api
             "state" => $state->getState(),
         );
         if (null !== $context->getScope()) {
-            $q['scope'] = $context->getScope();
+            $q['scope'] = $context->getScope()->getScopeAsString();
         }
         if ($this->clientConfig->getRedirectUri()) {
             $q['redirect_uri'] = $this->clientConfig->getRedirectUri();

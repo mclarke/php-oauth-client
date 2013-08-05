@@ -19,16 +19,16 @@ namespace fkooman\OAuth\Client;
 
 class Token
 {
-    /** client_config_id VARCHAR(255) NOT NULL */
+    /** @var string */
     private $clientConfigId;
 
-    /** user_id VARCHAR(255) NOT NULL */
+    /** @var string */
     private $userId;
 
-    /** scope VARCHAR(255) DEFAULT NULL */
+    /** @var Scope | null */
     private $scope;
 
-    /** issue_time INTEGER NOT NULL */
+    /** @var int */
     private $issueTime;
 
     public function __construct(array $data)
@@ -70,19 +70,14 @@ class Token
         return $this->userId;
     }
 
-    public function setScope($scope)
+    public function setScope(Scope $scope)
     {
-        $this->scope = new Scope($scope);
+        $this->scope = $scope;
     }
 
     public function getScope()
     {
-        return $this->scope->getScopeAsNormalizedString();
-    }
-
-    public function hasScope($scope)
-    {
-        return $this->scope->hasScope($scope);
+        return $this->scope;
     }
 
     public function setIssueTime($issueTime)

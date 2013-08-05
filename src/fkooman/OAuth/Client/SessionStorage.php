@@ -26,7 +26,7 @@ class SessionStorage implements StorageInterface
             if ($context->getUserId() !== $token->getUserId()) {
                 continue;
             }
-            if (!$token->hasScope($context->getScope())) {
+            if (!$token->getScope()->hasScope($context->getScope())) {
                 continue;
             }
 
@@ -80,7 +80,7 @@ class SessionStorage implements StorageInterface
             if ($context->getUserId() !== $token->getUserId()) {
                 continue;
             }
-            if (!$token->hasScope($context->getScope())) {
+            if (!$token->getScope()->hasScope($context->getScope())) {
                 continue;
             }
 

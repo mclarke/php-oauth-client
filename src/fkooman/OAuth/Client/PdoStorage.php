@@ -17,15 +17,21 @@
 
 namespace fkooman\OAuth\Client;
 
+use JMS\Serializer\SerializerBuilder;
 use \PDO as PDO;
 
 class PdoStorage implements StorageInterface
 {
+    /** @var \PDO */
     private $db;
+
+    /** @var JMS\Serializer\SerializerBuilder */
+    private $serializer;
 
     public function __construct(PDO $db)
     {
         $this->db = $db;
+        $this->serializer = SerializerBuilder::create()->build();
     }
 
     public function getAccessToken($clientConfigId, Context $context)
@@ -33,10 +39,11 @@ class PdoStorage implements StorageInterface
         $stmt = $this->db->prepare("SELECT * FROM access_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND scope = :scope");
         $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $context->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $context->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $this->serializer->serialize($context->getScope(), 'json'), PDO::PARAM_STR);
         $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result['scope'] = $this->serializer->deserialize($result['scope'], '\fkooman\OAuth\Client\Scope', 'json');
 
         return (false !== $result) ? new AccessToken($result) : false;
     }
@@ -46,7 +53,7 @@ class PdoStorage implements StorageInterface
         $stmt = $this->db->prepare("INSERT INTO access_tokens (client_config_id, user_id, scope, access_token, token_type, expires_in, issue_time) VALUES(:client_config_id, :user_id, :scope, :access_token, :token_type, :expires_in, :issue_time)");
         $stmt->bindValue(":client_config_id", $accessToken->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $accessToken->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $accessToken->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $this->serializer->serialize($accessToken->getScope(), 'json'), PDO::PARAM_STR);
         $stmt->bindValue(":access_token", $accessToken->getAccessToken(), PDO::PARAM_STR);
         $stmt->bindValue(":token_type", $accessToken->getTokenType(), PDO::PARAM_STR);
         $stmt->bindValue(":expires_in", $accessToken->getExpiresIn(), PDO::PARAM_INT);
@@ -73,10 +80,11 @@ class PdoStorage implements StorageInterface
         $stmt = $this->db->prepare("SELECT * FROM refresh_tokens WHERE client_config_id = :client_config_id AND user_id = :user_id AND scope = :scope");
         $stmt->bindValue(":client_config_id", $clientConfigId, PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $context->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $context->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $this->serializer->serialize($context->getScope(), 'json'), PDO::PARAM_STR);
         $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result['scope'] = $this->serializer->deserialize($result['scope'], '\fkooman\OAuth\Client\Scope', 'json');
 
         return (false !== $result) ? new RefreshToken($result) : false;
     }
@@ -86,7 +94,7 @@ class PdoStorage implements StorageInterface
         $stmt = $this->db->prepare("INSERT INTO refresh_tokens (client_config_id, user_id, scope, refresh_token, issue_time) VALUES(:client_config_id, :user_id, :scope, :refresh_token, :issue_time)");
         $stmt->bindValue(":client_config_id", $refreshToken->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $refreshToken->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $refreshToken->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $this->serializer->serialize($refreshToken->getScope(), 'json'), PDO::PARAM_STR);
         $stmt->bindValue(":refresh_token", $refreshToken->getRefreshToken(), PDO::PARAM_STR);
         $stmt->bindValue(":issue_time", $refreshToken->getIssueTime(), PDO::PARAM_INT);
 
@@ -114,6 +122,7 @@ class PdoStorage implements StorageInterface
         $stmt->execute();
 
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $result['scope'] = $this->serializer->deserialize($result['scope'], '\fkooman\OAuth\Client\Scope', 'json');
 
         return (false !== $result) ? new State($result) : false;
     }
@@ -123,7 +132,7 @@ class PdoStorage implements StorageInterface
         $stmt = $this->db->prepare("INSERT INTO states (client_config_id, user_id, scope, issue_time, state) VALUES(:client_config_id, :user_id, :scope, :issue_time, :state)");
         $stmt->bindValue(":client_config_id", $state->getClientConfigId(), PDO::PARAM_STR);
         $stmt->bindValue(":user_id", $state->getUserId(), PDO::PARAM_STR);
-        $stmt->bindValue(":scope", $state->getScope(), PDO::PARAM_STR);
+        $stmt->bindValue(":scope", $this->serializer->serialize($state->getScope(), 'json'), PDO::PARAM_STR);
         $stmt->bindValue(":issue_time", $state->getIssueTime(), PDO::PARAM_INT);
         $stmt->bindValue(":state", $state->getState(), PDO::PARAM_STR);
         $stmt->execute();

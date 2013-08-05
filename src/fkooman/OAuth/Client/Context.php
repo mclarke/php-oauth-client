@@ -7,7 +7,7 @@ class Context
     private $userId;
     private $scope;
 
-    public function __construct($userId, array $scope = null)
+    public function __construct($userId, Scope $scope = null)
     {
         $this->setUserId($userId);
         $this->setScope($scope);
@@ -26,13 +26,13 @@ class Context
         return $this->userId;
     }
 
-    public function setScope(array $scope = null)
+    public function setScope(Scope $scope)
     {
-        $this->scope = new Scope($scope);
+        $this->scope = $scope;
     }
 
     public function getScope()
     {
-        return $this->scope->getScopeAsNormalizedString();
+        return $this->scope;
     }
 }
