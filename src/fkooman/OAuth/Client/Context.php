@@ -7,7 +7,7 @@ class Context
     private $userId;
     private $scope;
 
-    public function __construct($userId, Scope $scope = null)
+    public function __construct($userId, Scope $scope)
     {
         $this->setUserId($userId);
         $this->setScope($scope);
@@ -28,9 +28,6 @@ class Context
 
     public function setScope(Scope $scope)
     {
-        if (null === $scope) {
-            $this->scope = new Scope();
-        }
         $this->scope = $scope;
     }
 
