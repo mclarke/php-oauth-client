@@ -16,8 +16,8 @@
     "name": "fkooman/php-oauth-client", 
     "require": {
         "ext-openssl": "*", 
-        "guzzle/guzzle": ">=v3.7.0", 
-        "monolog/monolog": "1.5.0", 
+        "guzzle/guzzle": "3.7.*", 
+        "monolog/monolog": "1.6.*", 
         "php": ">=5.3.3"
     }
 }
