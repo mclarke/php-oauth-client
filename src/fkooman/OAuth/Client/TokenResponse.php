@@ -35,6 +35,9 @@ class TokenResponse
         $this->setAccessToken($data['access_token']);
         $this->setTokenType($data['token_type']);
 
+        $this->expiresIn = null;
+        $this->refreshToken = null;
+        $this->scope = null;
         if (array_key_exists('expires_in', $data)) {
             $this->setExpiresIn($data['expires_in']);
         }

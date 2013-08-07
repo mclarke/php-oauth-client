@@ -95,8 +95,22 @@ class Api
 
                 return false;
             }
-            // we got a new token
-            $scope = (null !== $tokenResponse->getScope()) ? $tokenResponse->getScope() : $context->getScope();
+
+            if (null === $tokenResponse->getScope()) {
+                // no scope in response, we assume we got the requested scope
+                $scope = $context->getScope();
+            } else {
+                // the scope we got should be a superset of what we requested
+                $scope = $tokenResponse->getScope();
+                if (!$scope->hasScope($context->getScope())) {
+                    // we didn't get the scope we requested, stop for now
+                    // FIXME: we need to implement a way to request certain
+                    // scope as being optional, while others need to be
+                    // required
+                    throw new ApiException("requested scope not obtained");
+                }
+            }
+
             $accessToken = new AccessToken(
                 array(
                     "client_config_id" => $this->clientConfigId,
