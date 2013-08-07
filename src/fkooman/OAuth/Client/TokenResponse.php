@@ -42,12 +42,15 @@ class TokenResponse
             $this->setRefreshToken($data['refresh_token']);
         }
         if (array_key_exists('scope', $data)) {
-            $this->setScope(new Scope($data['scope']));
+            $this->setScope($data['scope']);
         }
     }
 
     public function setAccessToken($accessToken)
     {
+        if (!is_string($accessToken) || 0 >= strlen($accessToken)) {
+            throw new TokenResponseException("access_token needs to be a positive integer");
+        }
         $this->accessToken = $accessToken;
     }
 
@@ -58,6 +61,9 @@ class TokenResponse
 
     public function setTokenType($tokenType)
     {
+        if (!is_string($tokenType) || 0 >= strlen($tokenType)) {
+            throw new TokenResponseException("token_type needs to be a positive integer");
+        }
         $this->tokenType = $tokenType;
     }
 
@@ -68,6 +74,9 @@ class TokenResponse
 
     public function setExpiresIn($expiresIn)
     {
+        if (!is_int($expiresIn) || 0 >= $expiresIn) {
+            throw new TokenResponseException("expires_in needs to be a positive integer");
+        }
         $this->expiresIn = $expiresIn;
     }
 
@@ -78,6 +87,9 @@ class TokenResponse
 
     public function setRefreshToken($refreshToken)
     {
+        if (!is_string($refreshToken) || 0 >= strlen($refreshToken)) {
+            throw new TokenResponseException("refresh_token needs to be a non-empty string");
+        }
         $this->refreshToken = $refreshToken;
     }
 
@@ -86,9 +98,12 @@ class TokenResponse
         return $this->refreshToken;
     }
 
-    public function setScope(Scope $scope)
+    public function setScope($scope)
     {
-        $this->scope = $scope;
+        if (!is_string($scope) || 0 >= strlen($scope)) {
+            throw new TokenResponseException("scope needs to be a non-empty string");
+        }
+        $this->scope = new Scope($scope);
     }
 
     public function getScope()
