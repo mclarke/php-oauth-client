@@ -171,7 +171,7 @@ class Api
         }
 
         // try to get a new access token
-        $this->tokenStorage->deleteStateForUser($this->clientConfigId, $context);
+        $this->tokenStorage->deleteStateForContext($this->clientConfigId, $context);
         $state = new State(
             array(
                 "client_config_id" => $this->clientConfigId,
