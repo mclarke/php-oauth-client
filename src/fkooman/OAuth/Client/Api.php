@@ -190,9 +190,14 @@ class Api
             "response_type" => "code",
             "state" => $state->getState(),
         );
-        if ('' !== $context->getScope()->getScopeAsString()) {
-            $q['scope'] = $context->getScope()->getScopeAsString();
+
+        // scope
+        $contextScope = $context->getScope();
+        if (!$contextScope->isEmptyScope()) {
+            $q['scope'] = $contextScope->getScopeAsString();
         }
+
+        // redirect_uri
         if ($this->clientConfig->getRedirectUri()) {
             $q['redirect_uri'] = $this->clientConfig->getRedirectUri();
         }

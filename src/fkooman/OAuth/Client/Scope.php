@@ -55,6 +55,11 @@ class Scope
         return 1 === $result;
     }
 
+    public function isEmptyScope()
+    {
+        return 0 === count($this->scope);
+    }
+
     public function hasScope(Scope $scope)
     {
         foreach ($scope->getScopeAsArray() as $s) {
