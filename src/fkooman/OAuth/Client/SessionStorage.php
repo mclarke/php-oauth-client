@@ -153,7 +153,7 @@ class SessionStorage implements StorageInterface
         return true;
     }
 
-    public function deleteStateForUser($clientConfigId, Context $context)
+    public function deleteStateForContext($clientConfigId, Context $context)
     {
         if (!isset($_SESSION['php-oauth-client']['state'])) {
             return false;
