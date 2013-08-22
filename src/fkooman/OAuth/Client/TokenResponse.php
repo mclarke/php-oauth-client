@@ -52,7 +52,7 @@ class TokenResponse
     public function setAccessToken($accessToken)
     {
         if (!is_string($accessToken) || 0 >= strlen($accessToken)) {
-            throw new TokenResponseException("access_token needs to be a positive integer");
+            throw new TokenResponseException("access_token needs to be a non-empty string");
         }
         $this->accessToken = $accessToken;
     }
@@ -65,7 +65,7 @@ class TokenResponse
     public function setTokenType($tokenType)
     {
         if (!is_string($tokenType) || 0 >= strlen($tokenType)) {
-            throw new TokenResponseException("token_type needs to be a positive integer");
+            throw new TokenResponseException("token_type needs to be a non-empty string");
         }
         $this->tokenType = $tokenType;
     }
