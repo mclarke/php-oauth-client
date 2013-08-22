@@ -73,14 +73,12 @@ class Api
         $accessToken = $this->tokenStorage->getAccessToken($this->clientConfigId, $context);
         if (false !== $accessToken) {
             // check if expired
-            if ($accessToken->getIssueTime() + $accessToken->getExpiresIn() < time()) {
-                // expired, delete it
-                $this->tokenStorage->deleteAccessToken($accessToken);
-
-                return false;
+            if (time() < $accessToken->getIssueTime() + $accessToken->getExpiresIn()) {
+                // not expired
+                return $accessToken;
             }
-
-            return $accessToken;
+            // expired, delete it and continue
+            $this->tokenStorage->deleteAccessToken($accessToken);
         }
 
         // no valid access token, is there a refresh_token?
