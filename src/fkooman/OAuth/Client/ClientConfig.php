@@ -36,7 +36,7 @@ class ClientConfig implements ClientConfigInterface
     {
         foreach (array('client_id', 'authorize_endpoint', 'token_endpoint') as $key) {
             if (!array_key_exists($key, $data)) {
-               throw new ClientConfigException(sprintf("missing field '%s'", $key));
+                throw new ClientConfigException(sprintf("missing field '%s'", $key));
             }
         }
         $this->setClientId($data['client_id']);

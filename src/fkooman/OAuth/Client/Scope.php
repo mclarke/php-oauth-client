@@ -84,5 +84,4 @@ class Scope
 
         return implode(" ", $this->scope);
     }
-
 }

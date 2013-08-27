@@ -93,5 +93,4 @@ class Token
     {
         return $this->issueTime;
     }
-
 }
