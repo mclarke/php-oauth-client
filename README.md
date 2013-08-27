@@ -95,6 +95,25 @@ There is also a `GoogleClientConfig` class that you can use with Google's
         json_decode(file_get_contents("client_secrets.json"), true)
     );
 
+The Google class also sets some Google specific options to deal with some 
+specification violations. Configuration options to deal with specification 
+violating services are:
+
+* `allow_null_expires_in` in case the OAuth 2.0 AS returns `"expires_in": null`
+  this setting removes the `expires_in` field when it is `null` so it falls 
+  back to assuming the token is valid indefinitely. Set it to `true` to enable
+  this configuration option, defaults to `false`. AS with this behavior: 
+  SurveyMonkey
+* `default_token_type` in case the OAuth 2.0 AS omits the `token_type` field 
+  altogether. This allows you to set the `token_type`. For example you can set
+  it to `bearer` if you know that is the type the AS returns. AS with this 
+  behavior: Salesforce.
+* `credentials_in_request_body` in case the OAuth 2.0 AS does not accept Basic
+  authentication on the token endpoint. This will force the client to use
+  `client_id` and `client_secret` POST body fields to specify the credentials.
+  This option will also make it possible to allow for the `client_id` to have 
+  a colon (`:`) in it. AS with this behavior: Google.
+
 ## Initializing the API
 Now you can initialize the `Api` object:
 
