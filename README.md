@@ -103,7 +103,7 @@ violating services are:
   this setting removes the `expires_in` field when it is `null` so it falls 
   back to assuming the token is valid indefinitely. Set it to `true` to enable
   this configuration option, defaults to `false`. AS with this behavior: 
-  SurveyMonkey
+  SurveyMonkey.
 * `default_token_type` in case the OAuth 2.0 AS omits the `token_type` field 
   altogether. This allows you to set the `token_type`. For example you can set
   it to `bearer` if you know that is the type the AS returns. AS with this 
