@@ -77,21 +77,6 @@ class TokenResponse
 
     public function setExpiresIn($expiresIn)
     {
-        // we have some very bad behaving OAuth 2.0 servers out there. In this
-        // case SurveyMonkey that returns "expires_in": null instead of
-        // omitting the field altogether. FAIL.
-        // Spec violation: https://tools.ietf.org/html/rfc6749#appendix-A.14
-        // Issue: https://github.com/fkooman/php-oauth-client/issues/17
-        if (null === $expiresIn) {
-            return;
-        }
-
-        // assuming someone will at some point return expires_in as string
-        // instead of integer:
-        if (is_numeric($expiresIn)) {
-            $expiresIn = intval($expiresIn);
-        }
-
         if (!is_int($expiresIn) || 0 >= $expiresIn) {
             throw new TokenResponseException("expires_in needs to be a positive integer");
         }

@@ -40,34 +40,6 @@ class TokenResponseTest extends PHPUnit_Framework_TestCase
         $this->assertEquals("bar baz foo", $t->getScope()->getScopeAsString());
     }
 
-    // issue #17
-    public function testNullExpiresIn()
-    {
-        $t = new TokenResponse(
-            array(
-                "access_token" => "foo",
-                "token_type" => "Bearer",
-                "scope" => "foo bar",
-                "expires_in" => null,
-            )
-        );
-        $this->assertNull($t->getExpiresIn());
-    }
-
-    // issue #17
-    public function testStringExpiresIn()
-    {
-        $t = new TokenResponse(
-            array(
-                "access_token" => "foo",
-                "token_type" => "Bearer",
-                "scope" => "foo bar",
-                "expires_in" => "12345",
-            )
-        );
-        $this->assertEquals(12345, $t->getExpiresIn());
-    }
-
     /**
      * @expectedException \fkooman\OAuth\Client\TokenResponseException
      * @expectedExceptionMessage scope needs to be a non-empty string

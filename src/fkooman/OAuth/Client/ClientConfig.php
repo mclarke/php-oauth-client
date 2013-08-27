@@ -29,6 +29,7 @@ class ClientConfig implements ClientConfigInterface
     private $redirectUri;
     private $credentialsInRequestBody;
     private $defaultTokenType;
+    private $allowNullExpiresIn;
     private $enableDebug;
 
     public function __construct(array $data)
@@ -53,6 +54,9 @@ class ClientConfig implements ClientConfigInterface
 
         $defaultTokenType = array_key_exists('default_token_type', $data) ? $data['default_token_type'] : null;
         $this->setDefaultTokenType($defaultTokenType);
+
+        $allowNullExpiresIn = array_key_exists('allow_null_expires_in', $data) ? $data['allow_null_expires_in'] : false;
+        $this->setAllowNullExpiresIn($allowNullExpiresIn);
 
         $enableDebug = array_key_exists('enable_debug', $data) ? $data['enable_debug'] : false;
         $this->setEnableDebug($enableDebug);
@@ -146,6 +150,16 @@ class ClientConfig implements ClientConfigInterface
     public function getDefaultTokenType()
     {
         return $this->defaultTokenType;
+    }
+
+    public function setAllowNullExpiresIn($allowNullExpiresIn)
+    {
+        $this->allowNullExpiresIn = (bool) $allowNullExpiresIn;
+    }
+
+    public function getAllowNullExpiresIn()
+    {
+        return $this->allowNullExpiresIn;
     }
 
     public function setEnableDebug($enableDebug)

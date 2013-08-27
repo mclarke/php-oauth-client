@@ -66,10 +66,22 @@ class TokenRequest
         try {
             $responseData = $this->c->post($this->clientConfig->getTokenEndpoint())->addPostFields($p)->send()->json();
 
-            // some servers do not provide token_type, so we allow for setting a default
+            // some servers do not provide token_type, so we allow for setting
+            // a default
+            // issue: https://github.com/fkooman/php-oauth-client/issues/13
             if (null !== $this->clientConfig->getDefaultTokenType()) {
                 if (is_array($responseData) && !isset($responseData['token_type'])) {
                     $responseData['token_type'] = $this->clientConfig->getDefaultTokenType();
+                }
+            }
+
+            // if the field "expires_in" has the value null, remove it
+            // issue: https://github.com/fkooman/php-oauth-client/issues/17
+            if ($this->clientConfig->getAllowNullExpiresIn()) {
+                if (is_array($responseData) && isset($responseData['expires_in'])) {
+                    if (null === $responseData['expires_in']) {
+                        unset($responseData['expires_in']);
+                    }
                 }
             }
 
