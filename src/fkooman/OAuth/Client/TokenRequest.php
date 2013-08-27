@@ -74,7 +74,7 @@ class TokenRequest
             }
 
             return new TokenResponse($responseData);
-        } catch (\Guzzle\Http\Exception\ClientErrorResponseException $e) {
+        } catch (\Guzzle\Common\Exception\RuntimeException $e) {
             return false;
         }
     }
