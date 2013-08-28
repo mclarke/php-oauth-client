@@ -112,7 +112,7 @@ violating services are:
   authentication on the token endpoint. This will force the client to use
   `client_id` and `client_secret` POST body fields to specify the credentials.
   This option will also make it possible to allow for the `client_id` to have 
-  a colon (`:`) in it. AS with this behavior: Google.
+  a colon (`:`) in it. AS with this behavior: Google, SurveyMonkey.
 
 ## Initializing the API
 Now you can initialize the `Api` object:
