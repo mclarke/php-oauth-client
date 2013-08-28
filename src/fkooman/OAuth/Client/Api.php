@@ -72,6 +72,10 @@ class Api
         // do we have a valid access token?
         $accessToken = $this->tokenStorage->getAccessToken($this->clientConfigId, $context);
         if (false !== $accessToken) {
+            if (null === $accessToken->getExpiresIn()) {
+                // no expiry set, assume always valid
+                return $accessToken;
+            }
             // check if expired
             if (time() < $accessToken->getIssueTime() + $accessToken->getExpiresIn()) {
                 // not expired

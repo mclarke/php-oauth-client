@@ -78,7 +78,7 @@ class TokenRequest
             // if the field "expires_in" has the value null, remove it
             // issue: https://github.com/fkooman/php-oauth-client/issues/17
             if ($this->clientConfig->getAllowNullExpiresIn()) {
-                if (is_array($responseData) && isset($responseData['expires_in'])) {
+                if (is_array($responseData) && array_key_exists("expires_in", $responseData)) {
                     if (null === $responseData['expires_in']) {
                         unset($responseData['expires_in']);
                     }
