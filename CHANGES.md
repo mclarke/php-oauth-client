@@ -1,5 +1,10 @@
 # Release History
 
+## 0.3.1
+* Update README with information on how to do (token request) logging
+* Support OAuth 2.0 AS which provides an invalid `expires_in` value (issue #17)
+* Document all other service specific hacks
+
 ## 0.3.0
 * **Breaks API!**, see README.md and `example` directory, all applications need
   to be updated!
