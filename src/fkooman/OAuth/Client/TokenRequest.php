@@ -47,6 +47,9 @@ class TokenRequest
             "refresh_token" => $refreshToken,
             "grant_type" => "refresh_token"
         );
+        if (null !== $this->clientConfig->getRedirectUri()) {
+            $p['redirect_uri'] = $this->clientConfig->getRedirectUri();
+        }
 
         return $this->accessTokenRequest($p);
     }
